@@ -4,6 +4,9 @@ Items marked with an asterisk (\*) are changes that are likely to format
 existing code differently from the previous release when using the default
 profile. This started with version 0.26.0.
 
+## 0.27.0.1 (mlx)
+- relax OCaml constraints, compatible with OCaml 5.3
+
 ## 0.27.0
 
 ### Highlight
