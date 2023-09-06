@@ -92,7 +92,7 @@
   (ocaml
    (and
     (>= 4.08)
-    (< 5.3)))
+    (<= 5.3)))
   (cmdliner
    (or
     (and
