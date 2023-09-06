@@ -1,5 +1,5 @@
 (library
- (public_name ocamlformat.bin_conf)
+ (public_name ocamlformat-mlx.bin_conf)
  (name bin_conf)
  (flags
   (:standard
@@ -11,4 +11,4 @@
    Ocamlformat_result.Global_scope))
  (instrumentation
   (backend bisect_ppx))
- (libraries ocamlformat-lib re))
+ (libraries ocamlformat-mlx-lib re))
