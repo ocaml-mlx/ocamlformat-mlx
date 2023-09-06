@@ -372,6 +372,10 @@ let identchar_latin1 =
 
 let symbolchar =
   ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
+let symbolchar_no_greater =
+  ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '?' '@' '^' '|' '~']
+let symbolchar_no_less =
+  ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '=' '>' '?' '@' '^' '|' '~']
 let dotsymbolchar =
   ['!' '$' '%' '&' '*' '+' '-' '/' ':' '=' '>' '?' '@' '^' '|']
 let symbolchar_or_hash =
@@ -441,10 +445,18 @@ rule token = parse
         with Not_found -> LIDENT name }
   | lowercase_latin1 identchar_latin1 * as name
       { warn_latin1 lexbuf; LIDENT name }
+  | "<" (lowercase identchar * as name)
+      { JSX_LIDENT name }
+  | "<" "/" (lowercase identchar * as name)
+      { JSX_LIDENT_E name }
   | uppercase identchar * as name
       { UIDENT name } (* No capitalized keywords *)
   | uppercase_latin1 identchar_latin1 * as name
       { warn_latin1 lexbuf; UIDENT name }
+  | "<" (uppercase identchar * as name)
+      { JSX_UIDENT name }
+  | "<" "/" (uppercase identchar * as name)
+      { JSX_UIDENT_E name }
   | int_literal as lit { INT (lit, None) }
   | (int_literal as lit) (literal_modifier as modif)
       { INT (lit, Some modif) }
@@ -561,6 +573,7 @@ rule token = parse
   | ";"  { SEMI }
   | ";;" { SEMISEMI }
   | "<"  { LESS }
+  | "</" { LESSSLASH }
   | "<-" { LESSMINUS }
   | "="  { EQUAL }
   | "["  { LBRACKET }
@@ -574,6 +587,7 @@ rule token = parse
   | "||" { BARBAR }
   | "|]" { BARRBRACKET }
   | ">"  { GREATER }
+  | "/>" { SLASHGREATER }
   | ">]" { GREATERRBRACKET }
   | "}"  { RBRACE }
   | ">}" { GREATERRBRACE }
@@ -594,7 +608,9 @@ rule token = parse
             { PREFIXOP op }
   | ['~' '?'] symbolchar_or_hash + as op
             { PREFIXOP op }
-  | ['=' '<' '>' '|' '&' '$'] symbolchar * as op
+  | ['=' '<' '|' '&' '$'] symbolchar * as op
+            { INFIXOP0 op }
+  | ">" symbolchar_no_less * as op
             { INFIXOP0 op }
   | ['@' '^'] symbolchar * as op
             { INFIXOP1 op }
@@ -604,7 +620,9 @@ rule token = parse
             { INFIXOP4 op }
   | '%'     { PERCENT }
   | '/'     { SLASH }
-  | ['*' '/' '%'] symbolchar * as op
+  | ['*' '%'] symbolchar * as op
+            { INFIXOP3 op }
+  | "/" symbolchar_no_greater * as op
             { INFIXOP3 op }
   | '#' symbolchar_or_hash + as op
             { HASHOP op }
