@@ -591,6 +591,7 @@ let mk_directive ~loc name arg =
 %token FUNCTION               "function"
 %token FUNCTOR                "functor"
 %token GREATER                ">"
+%token SLASHGREATER           "/>"
 %token GREATERRBRACE          ">}"
 %token GREATERRBRACKET        ">]"
 %token IF                     "if"
@@ -618,9 +619,12 @@ let mk_directive ~loc name arg =
 %token LBRACKETPERCENT        "[%"
 %token LBRACKETPERCENTPERCENT "[%%"
 %token LESS                   "<"
+%token LESSSLASH              "</"
 %token LESSMINUS              "<-"
 %token LET                    "let"
 %token <string> LIDENT        "lident" (* just an example *)
+%token <string> JSX_LIDENT    "<lident" (* just an example *)
+%token <string> JSX_LIDENT_E  "</lident" (* just an example *)
 %token LPAREN                 "("
 %token LBRACKETAT             "[@"
 %token LBRACKETATAT           "[@@"
@@ -673,6 +677,8 @@ let mk_directive ~loc name arg =
 %token TRY                    "try"
 %token TYPE                   "type"
 %token <string> UIDENT        "UIdent" (* just an example *)
+%token <string> JSX_UIDENT    "<UIdent" (* just an example *)
+%token <string> JSX_UIDENT_E  "</UIdent" (* just an example *)
 %token UNDERSCORE             "_"
 %token VAL                    "val"
 %token VIRTUAL                "virtual"
@@ -749,6 +755,7 @@ The precedences must be listed from low to high.
           LBRACE LBRACELESS LBRACKET LBRACKETBAR LIDENT LPAREN
           NEW PREFIXOP STRING TRUE UIDENT UNDERSCORE
           LBRACKETPERCENT QUOTED_STRING_EXPR
+          JSX_LIDENT JSX_UIDENT
 
 
 /* Entry points */
@@ -2345,6 +2352,7 @@ simple_expr:
   | simple_expr_attrs
     { let desc, attrs = $1 in
       mkexp_attrs ~loc:$sloc desc attrs }
+  | e = jsx_element { Jsx_helper.mkjsxexp ~loc:$loc(e) e }
   | mkexp(simple_expr_)
       { $1 }
 ;
@@ -2454,6 +2462,22 @@ simple_expr:
   | mod_longident DOT
     LPAREN MODULE ext_attributes module_expr COLON error
       { unclosed "(" $loc($3) ")" $loc($8) }
+;
+jsx_element:
+    tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop) SLASHGREATER {
+      let children = Exp.mk ~loc:Location.none (Pexp_list []) in
+      Jsx_helper.make_jsx_element () ~raise ~loc:$loc(tag) ~tag ~end_tag:None ~props ~children }
+  | tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop) 
+    GREATER children=llist(simple_expr) end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=GREATER {
+      let children = mkexp ~loc:$loc(children) (Pexp_list children) in
+      let _ = end_tag_ in
+      Jsx_helper.make_jsx_element ()
+        ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children
+    }
+;
+jsx_prop:
+    name=LIDENT { $loc(name), `Prop_punned {txt=name;loc=make_loc $loc(name)} }
+  | name=LIDENT EQUAL expr=simple_expr { $loc(name), `Prop ({txt=name;loc=make_loc $loc(name)}, expr) }
 ;
 labeled_simple_expr:
     simple_expr %prec below_HASH
@@ -3602,6 +3626,17 @@ constr_longident:
 mk_longident(prefix,final):
    | final            { Lident $1 }
    | prefix DOT final { Ldot($1,$3) }
+;
+jsx_longident(uident, lident):
+   | id = uident { `Module, $sloc, Lident id }
+   | id = lident { `Value, $sloc, Lident id }
+   | prefix = uident DOT id = val_longident { 
+     let rec rebase = function
+       | Lident id -> Ldot (Lident prefix, id)
+       | Ldot (prefix', id) -> Ldot (rebase prefix', id)
+       | Lapply _ -> assert false
+     in
+     `Value, $sloc, rebase id }
 ;
 val_longident:
     mk_longident(mod_longident, val_ident) { $1 }
