@@ -59,3 +59,43 @@ Uident:
 Modident:
   $ echo '<App.Component />' | fmt
   <App.Component />
+
+Comments:
+  $ echo '<div> a  (* 1 *)  </div>' | fmt
+  <div>a (* 1 *)</div>
+  $ echo '<div> (* 1 *) b </div>' | fmt
+  <div>(* 1 *) b</div>
+  $ echo '<div> a (* 1 *)  b </div>' | fmt
+  <div>a (* 1 *) b</div>
+
+Comments TODO:
+  $ echo '<div> (* 1 *)   </div>' | fmt
+  ocamlformat-mlx: Cannot process "<standard input>".
+    Please report this bug at https://github.com/ocaml-ppx/ocamlformat/issues.
+    BUG: comment changed.
+  File "<standard input>", line 1, characters 6-13:
+  Error: comment (*  1  *) dropped.
+  [1]
+  $ echo '<div (* 1 *) />' | fmt
+  ocamlformat-mlx: Cannot process "<standard input>".
+    Please report this bug at https://github.com/ocaml-ppx/ocamlformat/issues.
+    BUG: comment changed.
+  File "<standard input>", line 1, characters 5-12:
+  Error: comment (*  1  *) dropped.
+  [1]
+  $ echo '<div a=1 (* 1 *) b=2 />' | fmt
+  <div a=1 (* 1 *) b=2 />
+  $ echo '<div a=(* 1 *)1 />' | fmt
+  <div a=(* 1 *) 1 />
+  $ echo '<div a(* 1 *)=1 />' | fmt
+  <div a=(* 1 *) 1 />
+  $ echo '<div (* 1 *)a=1 />' | fmt
+  ocamlformat-mlx: Cannot process "<standard input>".
+    Please report this bug at https://github.com/ocaml-ppx/ocamlformat/issues.
+    BUG: comment changed.
+  File "<standard input>", line 1, characters 5-12:
+  Error: comment (*  1  *) dropped.
+  [1]
+  $ echo '<div a=1 (* 1 *) />' | fmt
+  <div a=1 (* 1 *) />
+
