@@ -2464,15 +2464,18 @@ simple_expr:
       { unclosed "(" $loc($3) ")" $loc($8) }
 ;
 jsx_element:
-    tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop) SLASHGREATER {
+    tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop) end_loc=SLASHGREATER {
       let children = Exp.mk ~loc:Location.none (Pexp_list []) in
-      Jsx_helper.make_jsx_element () ~raise ~loc:$loc(tag) ~tag ~end_tag:None ~props ~children }
+      let _ = end_loc in
+      let end_loc = $loc(end_loc) in
+      Jsx_helper.make_jsx_element () ~raise ~loc:$loc(tag) ~end_loc ~tag ~end_tag:None ~props ~children }
   | tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop) 
     GREATER children=llist(simple_expr) end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=GREATER {
       let children = mkexp ~loc:$loc(children) (Pexp_list children) in
       let _ = end_tag_ in
+      let end_loc = $loc(end_tag_) in
       Jsx_helper.make_jsx_element ()
-        ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children
+        ~raise ~loc:$loc(tag) ~end_loc ~tag ~end_tag:(Some (end_tag, end_loc)) ~props ~children
     }
 ;
 jsx_prop:

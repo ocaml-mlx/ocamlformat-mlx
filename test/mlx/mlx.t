@@ -5,6 +5,9 @@ Basics:
   $ echo '<div />' | fmt
   <div />
 
+  $ echo '<div></div>' | fmt
+  <div />
+
   $ echo '<div className="some" />' | fmt
   <div className="some" />
 
@@ -70,19 +73,9 @@ Comments:
 
 Comments TODO:
   $ echo '<div> (* 1 *)   </div>' | fmt
-  ocamlformat-mlx: Cannot process "<standard input>".
-    Please report this bug at https://github.com/ocaml-ppx/ocamlformat/issues.
-    BUG: comment changed.
-  File "<standard input>", line 1, characters 6-13:
-  Error: comment (*  1  *) dropped.
-  [1]
+  <div /> (* 1 *)
   $ echo '<div (* 1 *) />' | fmt
-  ocamlformat-mlx: Cannot process "<standard input>".
-    Please report this bug at https://github.com/ocaml-ppx/ocamlformat/issues.
-    BUG: comment changed.
-  File "<standard input>", line 1, characters 5-12:
-  Error: comment (*  1  *) dropped.
-  [1]
+  <div (* 1 *) />
   $ echo '<div a=1 (* 1 *) b=2 />' | fmt
   <div a=1 (* 1 *) b=2 />
   $ echo '<div a=(* 1 *)1 />' | fmt
@@ -90,12 +83,12 @@ Comments TODO:
   $ echo '<div a(* 1 *)=1 />' | fmt
   <div a=(* 1 *) 1 />
   $ echo '<div (* 1 *)a=1 />' | fmt
-  ocamlformat-mlx: Cannot process "<standard input>".
-    Please report this bug at https://github.com/ocaml-ppx/ocamlformat/issues.
-    BUG: comment changed.
-  File "<standard input>", line 1, characters 5-12:
-  Error: comment (*  1  *) dropped.
-  [1]
+  <div (* 1 *) a=1 />
   $ echo '<div a=1 (* 1 *) />' | fmt
   <div a=1 (* 1 *) />
 
+
+  $ echo '<p (*1*)a=(*2*)a(*3*) />' | fmt --debug
+
+  $ echo '<p> (* 1 *) <div> (* 2 *)   </div> (* 3 *) </p>' | fmt
+  <div /> (* 1 *)

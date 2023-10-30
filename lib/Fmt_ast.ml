@@ -1908,17 +1908,21 @@ and fmt_expression c ?(box = true) ?pro ?epi ?eol ?parens ?(indent_wrap = 0)
   | Pexp_apply (e0, e1N1) -> (
       match pexp_attributes with
       | [{attr_name={txt="JSX";loc=_}; attr_payload=PStr []; _}] ->
-        let children = ref [] in
+        let children = ref (Location.none, []) in
+        let end_loc = List.find_map e1N1 ~f:(function
+          | Nolabel, {pexp_desc=Pexp_construct ({txt=Lident "()";loc}, _); _} -> Some loc
+          | _ -> None)
+        in
         let props = List.filter_map e1N1 ~f:(function
-          | Labelled {txt="children";_}, {pexp_desc=Pexp_list es;_} ->
-            children := es;
+          | Labelled {txt="children";_}, {pexp_desc=Pexp_list es;pexp_loc;_} ->
+            children := (pexp_loc, es);
             None
           | Nolabel, {pexp_desc=Pexp_construct ({txt=Lident "()";_}, _); _} -> None
           | arg -> Some arg)
         in
         let start_tag, end_tag =
           let make tag =
-            str (Printf.sprintf "<%s" tag),
+            Cmts.fmt c e0.pexp_loc (str (Printf.sprintf "<%s" tag)),
             str (Printf.sprintf "</%s>" tag)
           in
           let name, id =
@@ -1943,9 +1947,9 @@ and fmt_expression c ?(box = true) ?pro ?epi ?eol ?parens ?(indent_wrap = 0)
               let flabel = str (Printf.sprintf "%s%s" prefix label.txt) in
               match e.pexp_desc with
               | Pexp_ident {txt=Lident id; loc=_} when String.equal id label.txt ->
-                flabel
+                Cmts.fmt_before c e.pexp_loc $ flabel
               | _ ->
-                flabel $ fmt "=" $ fmt_expression c {ctx;ast=e}
+                flabel $ fmt "=" $ Cmts.fmt_before c e.pexp_loc $ fmt_expression c {ctx;ast=e}
             in
             let fmt_prop = function
               | Nolabel, e -> fmt_expression c {ctx;ast=e}
@@ -1954,15 +1958,21 @@ and fmt_expression c ?(box = true) ?pro ?epi ?eol ?parens ?(indent_wrap = 0)
             in
             str " " $ hvbox 0 (list_k props (break 1 0) fmt_prop)
         in 
+        let with_cmts f =
+          match end_loc with
+          | None -> f $ Cmts.fmt_after c (fst !children)
+          | Some end_loc -> Cmts.fmt c end_loc f $ Cmts.fmt_after c (fst !children)
+        in
         begin match !children with
-        | [] -> hvbox 2 (start_tag $ props $ fmt " />")
-        | children -> 
+        | _, [] -> 
+          hvbox 2 (start_tag $ props $ str " " $ with_cmts (fmt "/>"))
+        | _, children -> 
           let head = hvbox 2 (start_tag $ props $ fmt ">") in
           let children = 
             hvbox 0 (list_k children (break 1 0)
               (fun e -> fmt_expression c {ctx;ast=e}))
           in
-          hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
+          hvbox 2 (head $ break 0 0 $ with_cmts children $ break 0 (-2) $ end_tag)
         end
       | _ ->
       let wrap =

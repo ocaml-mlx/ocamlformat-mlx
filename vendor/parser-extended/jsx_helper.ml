@@ -28,7 +28,7 @@ let rec equal_longindent a b =
   | Lapply _, _ | _, Lapply _ -> assert false
   | _ -> false
 
-let make_jsx_element ~raise ~loc:_ ~tag ~end_tag ~props ~children () =
+let make_jsx_element ~raise ~loc:_ ~end_loc ~tag ~end_tag ~props ~children () =
   let () =
     match end_tag with
     | None -> ()
@@ -76,7 +76,7 @@ let make_jsx_element ~raise ~loc:_ ~tag ~end_tag ~props ~children () =
   in
   let unit =
     Exp.mk ~loc:Location.none
-      (Pexp_construct ({ txt = Lident "()"; loc = Location.none }, None))
+      (Pexp_construct ({ txt = Lident "()"; loc = make_loc end_loc }, None))
   in
   let props = (Labelled {txt="children"; loc=children.pexp_loc}, children) :: props in
   Pexp_apply (tag, (Nolabel, unit) :: props)
