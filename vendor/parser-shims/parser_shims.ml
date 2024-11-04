@@ -1,21 +1,6 @@
-module List = struct
-  include List
-
-  let rec find_map f = function
-    | [] -> None
-    | x :: l ->
-        begin match f x with
-        | Some _ as result -> result
-        | None -> find_map f l
-        end
-end
-
-module Int = struct
-  include Int
-
-  let min x y = if x <= y then x else y
-  let max x y = if x >= y then x else y
-end
+(* Stdlib shims are separated because they are also used by the compiler libs
+   shims. *)
+include Ocamlformat_stdlib_shims
 
 module Misc = struct
   include Misc
@@ -42,6 +27,7 @@ module Misc = struct
     let default_setting = Contextual
   end
 
+  (* Terminal styling handling *)
   module Style = struct
     (* use ANSI color codes, see https://en.wikipedia.org/wiki/ANSI_escape_code *)
     type color =
@@ -111,6 +97,8 @@ module Misc = struct
       }
 
     let cur_styles = ref default_styles
+    let get_styles () = !cur_styles
+    let set_styles s = cur_styles := s
 
     (* map a tag to a style, if the tag is known.
      @raise Not_found otherwise *)
@@ -123,12 +111,14 @@ module Misc = struct
       | Style s -> no_markup s
       | _ -> raise Not_found
 
-    let as_inline_code printer ppf x =
-      Format.pp_open_stag ppf (Format.String_tag "inline_code");
-      printer ppf x;
-      Format.pp_close_stag ppf ()
 
-    let inline_code ppf s = as_inline_code Format.pp_print_string ppf s
+    let as_inline_code printer ppf x =
+      let open Format_doc in
+      pp_open_stag ppf (Format.String_tag "inline_code");
+      printer ppf x;
+      pp_close_stag ppf ()
+
+    let inline_code ppf s = as_inline_code Format_doc.pp_print_string ppf s
 
     (* either prints the tag of [s] or delegates to [or_else] *)
     let mark_open_tag ~or_else s =
@@ -178,7 +168,25 @@ module Misc = struct
   end
 end
 
-module Clflags = struct
+module Clflags : sig
+  val include_dirs : string list ref
+  val hidden_include_dirs : string list ref
+  val debug : bool ref
+  val unsafe : bool ref
+  val open_modules : string list ref
+  val absname : bool ref
+  val use_threads : bool ref
+  val principal : bool ref
+  val recursive_types : bool ref
+  val applicative_functors : bool ref
+  val for_package : string option ref
+  val transparent_modules : bool ref
+  val locations : bool ref
+  val color : Misc.Color.setting option ref
+  val error_style : Misc.Error_style.setting option ref
+  val unboxed_types : bool ref
+  val no_std_include : bool ref
+end = struct
   let include_dirs = ref ([] : string list)(* -I *)
   let hidden_include_dirs = ref ([] : string list)
   let debug = ref false                   (* -g *)
@@ -220,3 +228,5 @@ module Builtin_attributes = struct
 
   let mark_payload_attrs_used _ = ()
 end
+
+module Format_doc = Format_doc

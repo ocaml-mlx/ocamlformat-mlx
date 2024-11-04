@@ -4,6 +4,112 @@ Items marked with an asterisk (\*) are changes that are likely to format
 existing code differently from the previous release when using the default
 profile. This started with version 0.26.0.
 
+## unreleased
+
+### Highlight
+
+- \* Support OCaml 5.2 syntax (#2519, #2544, #2590, #2596, @Julow, @EmileTrotignon)
+  This includes local open in types and the new representation for functions.
+  This might change the formatting of some functions due to the formatting code
+  being completely rewritten.
+
+- Support OCaml 5.3 syntax (#2609, @Julow)
+
+- Documentation comments are now formatted by default (#2390, @Julow)
+  Use the option `parse-docstrings = false` to restore the previous behavior.
+
+- \* Consistent indentation of polymorphic variant arguments (#2427, @Julow)
+  Increases the indentation by one to make the formatting consistent with
+  normal variants. For example:
+  ```
+    ...
+    (* before *)
+      (`Msg
+        (foo bar))
+    (* after *)
+      (`Msg
+         (foo bar))
+  ```
+
+- Build on OCaml 5.3 (#2603, @adamchol, @Julow)
+
+### Added
+
+- Allow a custom command to be used to run ocamlformat in the emacs plugin (#2577, @gridbugs)
+
+- Added option `let-binding-deindent-fun` (#2521, @henrytill)
+  to control the indentation of the `fun` in:
+  ```
+  let f =
+   fun foo ->
+    bar
+  ```
+
+- Added back the flag `--disable-outside-detected-project` (#2439, @gpetiot)
+  It was removed in version 0.22.
+
+### Changed
+
+- \* Consistent formatting of comments (#2371, #2550, @Julow)
+  This is mostly an internal change but some comments might be formatted differently.
+
+- \* Improve formatting of type constraints with type variables (#2437, @gpetiot)
+  For example:
+  ```
+  let f : type a b c.
+      a -> b -> c =
+    ...
+  ```
+
+- \* Improve formatting of functor arguments (#2505, @Julow)
+  This also reduce the indentation of functor arguments with long signatures.
+
+- Improvements to the Janestreet profile (#2445, #2314, #2460, #2593, @Julow, @tdelvecchio-jsc)
+
+- \* Undo let-bindings and methods normalizations (#2523, #2529, @gpetiot)
+  This remove the rewriting of some forms of let-bindings and methods:
+  + `let f x = (x : int)` is no longer rewritten into `let f x : int = x`
+  + `let f (type a) (type b) ...` is no longer rewritten into `let f (type a b) ...`
+  + `let f = fun x -> ...` is no longer rewritten into `let f x = ...`
+
+- \* The `break-colon` option is now taken into account for method type constraints (#2529, @gpetiot)
+
+- \* Force a break around comments following an infix operator (fix non-stabilizing comments) (#2478, @gpetiot)
+  This adds a line break:
+  ```
+    a
+    ||
+    (* this comment is now on its own line *)
+    b
+  ```
+
+### Fixed
+
+- Fix placement of comments in some cases (#2471, #2503, #2506, #2540, #2541, #2592, @gpetiot, @Julow)
+  Some comments were being moved or causing OCamlformat to crash.
+  OCamlformat refuses to format if a comment would be missing in its output, to avoid loosing code.
+
+- Fix attributes being dropped or moved (#2247, #2459, #2551, #2564, #2602, @EmileTrotignon, @tdelvecchio-jsc, @Julow)
+  OCamlformat refuses to format if the formatted code has a different meaning than the original code, for example, if an attribute is removed.
+  We also try to avoid moving attributes even if that doesn't change the original code, for example we no longer format `open[@attr] M` as `open M [@@attr]`.
+
+- Remove trailing space inside a wrapping empty signature (#2443, @Julow)
+- Fix extension-point spacing in structures (#2450, @Julow)
+- \* Consistent break after string constant argument (#2453, @Julow)
+- \* Fix cinaps comment formatting to not change multiline string contents (#2463, @tdelvecchio-jsc)
+- \* Fix the indentation of tuples in attributes and extensions (#2488, @Julow)
+- \* Fix weird indentation and line breaks after comments (#2507, #2589, #2606, @Julow)
+- \* Fix unwanted alignment in if-then-else (#2511, @Julow)
+- Fix missing parentheses around constraint expressions with attributes (#2513, @alanechang)
+- Fix formatting of type vars in GADT constructors (#2518, @Julow)
+- Fix `[@ocamlformat "disable"]` in some cases (#2242, #2525, @EmileTrotignon)
+  This caused a bug inside `class type` constructs and when attached to a `let ... in`
+- Display `a##b` instead of `a ## b` and similarly for operators that start with # (#2580, @v-gb)
+- \* Fix arrow type indentation with `break-separators=before` (#2598, @Julow)
+- Fix missing parentheses around a let in class expressions (#2599, @Julow)
+- Fix formatting of paragraphs in lists in documentation (#2607, @Julow)
+- Avoid unwanted space in references and links text in documentation (#2608, @Julow)
+
 ## 0.26.2 (2024-04-18)
 
 ### Changed
