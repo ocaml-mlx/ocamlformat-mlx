@@ -2168,151 +2168,141 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
              $ fmt_expression c ~box (sub_exp ~ctx e)
              $ fmt_atrs ) )
   | Pexp_apply (e0, e1N1) -> (
-    match pexp_attributes with
-    | [{attr_name= {txt= "JSX"; loc= _}; attr_payload= PStr []; _}] -> (
+      match pexp_attributes with
+      | [{attr_name={txt="JSX";loc=_}; attr_payload=PStr []; _}] ->
         let children = ref None in
-        let props =
-          List.filter_map e1N1 ~f:(function
-            | ( Labelled {txt= "children"; _}
-              , {pexp_desc= Pexp_list es; pexp_loc; _} ) ->
-                children := Some (pexp_loc, es) ;
-                None
-            | ( Nolabel
-              , {pexp_desc= Pexp_construct ({txt= Lident "()"; _}, _); _} )
-              ->
-                None
-            | arg -> Some arg )
+        let props = List.filter_map e1N1 ~f:(function
+          | Labelled {txt="children";_}, {pexp_desc=Pexp_list es;pexp_loc;_} ->
+            children := Some (pexp_loc, es);
+            None
+          | Nolabel, {pexp_desc=Pexp_construct ({txt=Lident "()";_}, _); _} -> None
+          | arg -> Some arg)
         in
         let start_tag, end_tag =
           let name, name_loc, id =
             match e0.pexp_desc with
-            | Pexp_ident {txt= Lident name; loc} -> (name, loc, None)
-            | Pexp_ident {txt= Ldot (id, name); loc} -> (name, loc, Some id)
+            | Pexp_ident {txt=Lident name;loc} -> name, loc, None
+            | Pexp_ident {txt=Ldot (id, name);loc} -> name, loc, Some id
             | _ -> failwith "JSX element tag is not Longident.t"
           in
           let make tag =
-            ( (fun () ->
-                str (Printf.sprintf "<%s" tag) $ Cmts.fmt_after c name_loc )
-            , fun () -> str (Printf.sprintf "</%s>" tag) )
+            (fun () ->
+              str (Printf.sprintf "<%s" tag) $ Cmts.fmt_after c name_loc),
+            (fun () -> str (Printf.sprintf "</%s>" tag))
           in
           match id with
           | None -> make name
-          | Some id -> (
-              let path = Ocamlformat_ocaml_common.Longident.flatten id in
-              match name with
-              | "createElement" -> make (String.concat ~sep:"." path)
-              | name ->
-                  make
-                    (Printf.sprintf "%s.%s"
-                       (String.concat ~sep:"." path)
-                       name ) )
+          | Some id ->
+            let path = Ocamlformat_ocaml_common.Longident.flatten id in
+            match name with
+            | "createElement" -> make (String.concat ~sep:"." path)
+            | name -> make (Printf.sprintf "%s.%s" (String.concat ~sep:"." path) name)
         in
         let props =
           match props with
           | [] -> str ""
           | props ->
-              let fmt_labelled ?(prefix = "") label e =
-                let flabel = str (Printf.sprintf "%s%s" prefix label.txt) in
-                match e.pexp_desc with
-                | Pexp_ident {txt= Lident id; loc= _}
-                  when String.equal id label.txt ->
-                    flabel
-                | _ -> flabel $ str "=" $ fmt_expression c {ctx; ast= e}
-              in
-              let fmt_prop = function
-                | Nolabel, e -> fmt_expression c {ctx; ast= e}
-                | Labelled label, e -> fmt_labelled label e
-                | Optional label, e -> fmt_labelled ~prefix:"?" label e
-              in
-              space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
+            let fmt_labelled ?(prefix="") label e =
+              let flabel = str (Printf.sprintf "%s%s" prefix label.txt) in
+              match e.pexp_desc with
+              | Pexp_ident {txt=Lident id; loc=_} when String.equal id label.txt ->
+                flabel
+              | _ ->
+                flabel $ str "=" $ fmt_expression c {ctx;ast=e}
+            in
+            let fmt_prop = function
+              | Nolabel, e -> fmt_expression c {ctx;ast=e}
+              | Labelled label, e -> fmt_labelled label e
+              | Optional label, e -> fmt_labelled ~prefix:"?" label e
+            in
+            space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
         in
-        match !children with
+        begin match !children with
         | None -> hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
-        | Some (children_loc, [])
-          when not (Cmts.has_after c.cmts children_loc) ->
-            hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
+        | Some (children_loc, []) when not (Cmts.has_after c.cmts children_loc) ->
+          hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
         | Some (children_loc, children) ->
-            let head = hvbox 2 (start_tag () $ props $ str ">") in
-            let children =
-              hvbox 0
-                ( list children (break 1 0) (fun e ->
-                      fmt_expression c {ctx; ast= e} )
-                $ Cmts.fmt_after c children_loc )
-            in
-            hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag ())
-        )
-    | _ -> (
-        let wrap =
-          if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2
-        in
-        let (lbl, last_arg), args_before =
-          match List.rev e1N1 with
-          | [] -> assert false
-          | hd :: tl -> (hd, List.rev tl)
-        in
-        let intro_epi, expr_epi =
-          (* [intro_epi] should be placed inside the inner most box but
-             before anything. [expr_epi] is placed in the outermost box,
-             outside of parenthesis. *)
-          let dock_fun_arg =
-            (* Do not dock the arguments when there's more than one. *)
-            (not c.conf.fmt_opts.ocp_indent_compat.v)
-            || Location.line_difference e0.pexp_loc last_arg.pexp_loc = 0
+          let head = hvbox 2 (start_tag () $ props $ str ">") in
+          let children =
+            hvbox 0 (
+              list children (break 1 0)
+              (fun e -> fmt_expression c {ctx;ast=e})
+              $ Cmts.fmt_after c children_loc)
           in
-          if parens || not dock_fun_arg then (noop, pro) else (pro, noop)
+          hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag ())
+        end
+      | _ ->
+      let wrap =
+        if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2
+      in
+      let (lbl, last_arg), args_before =
+        match List.rev e1N1 with
+        | [] -> assert false
+        | hd :: tl -> (hd, List.rev tl)
+      in
+      let intro_epi, expr_epi =
+        (* [intro_epi] should be placed inside the inner most box but before
+           anything. [expr_epi] is placed in the outermost box, outside of
+           parenthesis. *)
+        let dock_fun_arg =
+          (* Do not dock the arguments when there's more than one. *)
+          (not c.conf.fmt_opts.ocp_indent_compat.v)
+          || Location.line_difference e0.pexp_loc last_arg.pexp_loc = 0
         in
-        match last_arg.pexp_desc with
-        | Pexp_function (largs, ltyp, lbody)
-          when List.for_all args_before ~f:(fun (_, eI) ->
-                   is_simple c.conf (fun _ -> 0) (sub_exp ~ctx eI) ) ->
-            let inner_ctx = Exp last_arg in
-            let inner_parens, outer_parens =
-              (* Don't disambiguate parentheses in some cases, also affect
-                 indentation. *)
-              match lbody with
-              | Pfunction_cases _
-                when not c.conf.fmt_opts.ocp_indent_compat.v ->
-                  (parens, false)
-              | _ -> (false, parens)
+        if parens || not dock_fun_arg then (noop, pro) else (pro, noop)
+      in
+      match last_arg.pexp_desc with
+      | Pexp_function (largs, ltyp, lbody)
+        when List.for_all args_before ~f:(fun (_, eI) ->
+                 is_simple c.conf (fun _ -> 0) (sub_exp ~ctx eI) ) ->
+          let inner_ctx = Exp last_arg in
+          let inner_parens, outer_parens =
+            (* Don't disambiguate parentheses in some cases, also affect
+               indentation. *)
+            match lbody with
+            | Pfunction_cases _ when not c.conf.fmt_opts.ocp_indent_compat.v
+              ->
+                (parens, false)
+            | _ -> (false, parens)
+          in
+          let args =
+            let wrap_intro x =
+              fmt_if inner_parens (str "(")
+              $ hvbox 0
+                  ( intro_epi
+                  $ wrap
+                      ( fmt_args_grouped e0 args_before
+                      $ break 1 0 $ hvbox 0 x ) )
+              $ break 1 0
             in
-            let args =
-              let wrap_intro x =
-                fmt_if inner_parens (str "(")
-                $ hvbox 0
-                    ( intro_epi
-                    $ wrap
-                        ( fmt_args_grouped e0 args_before
-                        $ break 1 0 $ hvbox 0 x ) )
-                $ break 1 0
-              in
-              let force_closing_paren =
-                if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v
-                then Fit
-                else Break
-              in
-              fmt_function ~last_arg:true ~force_closing_paren ~ctx:inner_ctx
-                ~ctx0:ctx ~wrap_intro ~label:lbl ~parens:true
-                ~attrs:last_arg.pexp_attributes ~loc:last_arg.pexp_loc c
-                (largs, ltyp, lbody)
-            in
-            hvbox_if has_attr 0
-              ( expr_epi
-              $ Params.parens_if outer_parens c.conf
-                  (args $ fmt_atrs $ fmt_if inner_parens (str ")")) )
-        | _ ->
-            let fmt_atrs =
-              fmt_attributes c ~pre:(Break (1, -2)) pexp_attributes
-            in
-            let force =
+            let force_closing_paren =
               if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v
               then Fit
               else Break
             in
-            pro
-            $ fmt_if parens (str "(")
-            $ hvbox 2
-                ( fmt_args_grouped ~epi:fmt_atrs e0 e1N1
-                $ fmt_if parens (closing_paren c ~force ~offset:(-3)) ) ) )
+            fmt_function ~last_arg:true ~force_closing_paren ~ctx:inner_ctx
+              ~ctx0:ctx ~wrap_intro ~label:lbl ~parens:true
+              ~attrs:last_arg.pexp_attributes ~loc:last_arg.pexp_loc c
+              (largs, ltyp, lbody)
+          in
+          hvbox_if has_attr 0
+            ( expr_epi
+            $ Params.parens_if outer_parens c.conf
+                (args $ fmt_atrs $ fmt_if inner_parens (str ")")) )
+      | _ ->
+          let fmt_atrs =
+            fmt_attributes c ~pre:(Break (1, -2)) pexp_attributes
+          in
+          let force =
+            if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v then
+              Fit
+            else Break
+          in
+          pro
+          $ fmt_if parens (str "(")
+          $ hvbox 2
+              ( fmt_args_grouped ~epi:fmt_atrs e0 e1N1
+              $ fmt_if parens (closing_paren c ~force ~offset:(-3)) ) )
   | Pexp_array [] ->
       pro
       $ hvbox 0

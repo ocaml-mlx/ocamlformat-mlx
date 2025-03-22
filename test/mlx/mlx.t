@@ -160,5 +160,5 @@ Comments:
   <div (* 1 *) />
   $ echo '<App (* 1 *) />' | fmt
   <App (* 1 *) />
-  $ echo '<App.name (* 1 *) />' | fmtMore actions
+  $ echo '<App.name (* 1 *) />' | fmt
   <App.name (* 1 *) />
