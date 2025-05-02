@@ -2215,12 +2215,12 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
               | Labelled label, e -> fmt_labelled label e
               | Optional label, e -> fmt_labelled ~prefix:"?" label e
             in
-            str " " $ hvbox 0 (list props (break 1 0) fmt_prop)
+            space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
         in
         begin match !children with
-        | None -> hvbox 2 (start_tag () $ props $ str " />")
+        | None -> hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
         | Some (children_loc, []) when not (Cmts.has_after c.cmts children_loc) ->
-          hvbox 2 (start_tag () $ props $ str " />")
+          hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
         | Some (children_loc, children) ->
           let head = hvbox 2 (start_tag () $ props $ str ">") in
           let children =

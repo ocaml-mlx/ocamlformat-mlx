@@ -15,42 +15,45 @@ Basics:
   <div>child1 child2</div>
 
 Prop wrapping:
-  $ echo '<div className="some" className="another" className="third" />' | fmt --margin=50
-  <div className="some"
-       className="another"
-       className="third" />
+  $ echo '<main className="some" className="another" className="third" />' | fmt --margin=50
+  <main
+    className="some"
+    className="another"
+    className="third"
+  />
 
-Prop punning:
-  $ echo '<div className />' | fmt --margin=50
-  <div className />
-
-  $ echo '<div className=className />' | fmt --margin=50
-  <div className />
-
-Optional props:
-  $ echo '<div ?className />' | fmt --margin=50
-  <div ?className />
-
-  $ echo '<div ?className=className />' | fmt --margin=50
-  <div ?className />
-
-Props expressions:
-  $ echo '<div className=1 />' | fmt --margin=50
-  <div className=1 />
-  $ echo '<div className=(not x) />' | fmt --margin=50
-  <div className=(not x) />
-  $ echo '<div className=(1+1) />' | fmt --margin=50
-  <div className=(1 + 1) />
-  $ echo '<div className=!a />' | fmt --margin=50
-  <div className=!a />
-
-Children wrapping:
-  $ echo '<div><div className="some" className="another" />some child</div>' | fmt --margin=50
-  <div>
-    <div className="some" className="another" />
-    some
-    child
+  $ echo '<div className="some" className="another" className="third" ><div className="some" className="another" className="third" /></div>' | fmt --margin=50
+  <div
+    className="some"
+    className="another"
+    className="third">
+    <div
+      className="some"
+      className="another"
+      className="third"
+    />
   </div>
+
+  $ echo '<div><div className="some" className="another" className="third" /></div>' | fmt --margin=50
+  <div>
+    <div
+      className="some"
+      className="another"
+      className="third"
+    />
+  </div>
+
+Prop wrapping with comments:
+  $ echo '<body><div (* this className is nice *) className="some" className=("another" (* this className is not *)) className="third" /></body>' | fmt --margin=50
+  <body>
+    <div
+      (* this className is nice *)
+      className="some"
+      className="another"
+                (* this className is not *)
+      className="third"
+    />
+  </body>
 
 Children wrapping:
   $ echo '<div><div className="some" className="another" />some child</div>' | fmt --margin=60
