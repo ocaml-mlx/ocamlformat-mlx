@@ -61,6 +61,44 @@ Children wrapping:
     <div className="some" className="another" /> some child
   </div>
 
+Prop punning:
+  $ echo '<div className />' | fmt --margin=50
+  <div className />
+
+  $ echo '<div className=className />' | fmt --margin=50
+  <div className />
+
+Children wrapping:
+  $ echo '<div><div className="some" className="another" />some child</div>' | fmt --margin=50
+  <div>
+    <div className="some" className="another" />
+    some
+    child
+  </div>
+
+Children wrapping:
+  $ echo '<div><div className="some" className="another" />some child</div>' | fmt --margin=60
+  <div>
+    <div className="some" className="another" /> some child
+  </div>
+
+Optional props:
+  $ echo '<div ?className />' | fmt --margin=50
+  <div ?className />
+
+  $ echo '<div ?className=className />' | fmt --margin=50
+  <div ?className />
+
+Props expressions:
+  $ echo '<div className=1 />' | fmt --margin=50
+  <div className=1 />
+  $ echo '<div className=(not x) />' | fmt --margin=50
+  <div className=(not x) />
+  $ echo '<div className=(1+1) />' | fmt --margin=50
+  <div className=(1 + 1) />
+  $ echo '<div className=!a />' | fmt --margin=50
+  <div className=!a />
+
 Uident:
   $ echo '<App />' | fmt
   <App />
