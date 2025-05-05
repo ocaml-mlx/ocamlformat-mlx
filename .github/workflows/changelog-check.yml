@@ -9,5 +9,6 @@ jobs:
   Changelog-Entry-Check:
     name: Check Changelog Action
     runs-on: ubuntu-latest
-    steps:
-      - uses: tarides/changelog-check-action@v1
+    # We don't push changelog entries
+    # steps:
+    #   - uses: tarides/changelog-check-action@v1
