@@ -36,6 +36,9 @@ jobs:
       - name: Opam dependencies
         run: opam install --deps-only -t .
 
+#      - name: Format
+#        run: opam exec -- dune fmt
+
       - name: Build
         run: |
           opam exec -- dune subst
@@ -43,6 +46,9 @@ jobs:
 
       - name: Runtest
         run: opam exec -- dune runtest
+
+#      - name: Check manpages
+#        run: opam exec -- dune build @gen_manpage --auto-promote
 
       - name: Upload binary
         # Using a specific version because of https://github.com/actions/upload-artifact/issues/590
