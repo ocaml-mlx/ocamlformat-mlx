@@ -93,6 +93,7 @@ jobs:
           branch: main
           name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
           path: ocamlformat-a
+          allow_forks: true
 
       - name: Fetch new build of ocamlformat
         uses: actions/download-artifact@v4.1.7
