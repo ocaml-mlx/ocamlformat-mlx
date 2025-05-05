@@ -24,6 +24,6 @@
 
 (rule
  (alias gen_manpage)
- (package ocamlformat-mlx)
+ (package ocamlformat)
  (action
   (diff manpage_ocamlformat_rpc.mld manpage_ocamlformat_rpc.mld.gen)))
