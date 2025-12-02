@@ -190,5 +190,84 @@ JSX elements as props:
   $ echo 'let _ = <Big>(match x with | A -> "33" | B -> "44")</Big>' | fmt
   let _ = <Big>(match x with A -> "33" | B -> "44")</Big>
 
+JSX in tuples:
+  $ echo 'let _ = (<div />, <span />)' | fmt
+  let _ = (<div />, <span />)
+  $ echo 'let _ = (1, <span />, "text")' | fmt
+  let _ = (1, <span />, "text")
+  $ echo 'let _ = (<div>content</div>, foo)' | fmt
+  let _ = (<div>content</div>, foo)
+
+JSX in records:
+  $ echo 'let _ = { element = <div /> }' | fmt
+  let _ = { element = <div /> }
+  $ echo 'let _ = { element = <Component /> }' | fmt
+  let _ = { element = <Component /> }
+  $ echo 'let _ = { foo = 1; element = <div />; bar = 2 }' | fmt
+  let _ = { foo = 1; element = <div />; bar = 2 }
+
+JSX in options/variants:
+  $ echo 'let _ = Some <div />' | fmt
+  let _ = Some <div />
+  $ echo 'let _ = Some (<div />)' | fmt
+  let _ = Some <div />
+  $ echo 'let _ = Ok <Component />' | fmt
+  let _ = Ok <Component />
+  $ echo 'let _ = Woo <Component />, 3' | fmt
+  let _ = (Woo <Component />, 3)
+
+JSX in function calls:
+  $ echo 'let _ = render <div />' | fmt
+  let _ = render <div />
+  $ echo 'let _ = render (<div />)' | fmt
+  let _ = render <div />
+  $ echo 'let _ = foo <div /> <span />' | fmt
+  let _ = foo <div /> <span />
+  $ echo 'let _ = ReactDOM.render <div /> container' | fmt
+  let _ = ReactDOM.render <div /> container
+
+JSX in arrays:
+  $ echo 'let _ = [|<div />; <span />|]' | fmt
+  let _ = [| <div />; <span /> |]
+  $ echo 'let _ = [|<Component />|]' | fmt
+  let _ = [| <Component /> |]
+
+JSX in let bindings:
+  $ echo 'let x = <div />' | fmt
+  let x = <div />
+  $ echo 'let x = <Component />' | fmt
+  let x = <Component />
+  $ echo 'let x = <div>content</div>' | fmt
+  let x = <div>content</div>
+
+JSX in pattern matching:
+  $ echo 'match x with | A -> <div /> | B -> <span />' | fmt
+  match x with A -> <div /> | B -> <span />
+  $ echo 'match x with | Some y -> <div>y</div> | None -> <span />' | fmt
+  match x with Some y -> <div>y</div> | None -> <span />
+
+JSX in if expressions:
+  $ echo 'if x then <div /> else <span />' | fmt
+  if x then <div /> else <span />
+  $ echo 'let _ = if cond then <Component /> else <Other />' | fmt
+  let _ = if cond then <Component /> else <Other />
+
+JSX in sequences:
+  $ echo 'let _ = (<div />; <span />)' | fmt
+  let _ =
+    <div />;
+    <span />
+  $ echo '<div />; <span />' | fmt
+  <div />;
+  <span />
+
+JSX with infix operators:
+  $ echo 'let _ = x |> render <div />' | fmt
+  let _ = x |> render <div />
+  $ echo 'let _ = <div /> :: <span /> :: []' | fmt
+  let _ = [ <div />; <span /> ]
+  $ echo 'let _ = [<div />; <span />]' | fmt
+  let _ = [ <div />; <span /> ]
+
   $ echo 'let _ = <Big>(<Lola />)</Big>' | fmt
   let _ = <Big><Lola /></Big>

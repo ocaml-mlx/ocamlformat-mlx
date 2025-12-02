@@ -59,6 +59,11 @@ let cmt_checker {cmts; _} =
 
 let break_between c = Ast.break_between c.source (cmt_checker c)
 
+let is_jsx_element e =
+  match e.pexp_attributes with
+  | [{attr_name={txt="JSX";_}; attr_payload=PStr []; _}] -> true
+  | _ -> false
+
 type block =
   { opn: Fmt.t option
   ; pro: Fmt.t option
@@ -2273,11 +2278,6 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
   | Pexp_apply (e0, e1N1) -> (
       match pexp_attributes with
       | [{attr_name={txt="JSX";loc=_}; attr_payload=PStr []; _}] ->
-        let is_jsx_element e =
-          match e.pexp_attributes with
-          | [{attr_name={txt="JSX";_}; attr_payload=PStr []; _}] -> true
-          | _ -> false
-        in
         let children = ref None in
         let props = List.filter_map e1N1 ~f:(function
           | Labelled {txt="children";_}, {pexp_desc=Pexp_list es;pexp_loc;_} ->
