@@ -59,6 +59,11 @@ let cmt_checker {cmts; _} =
 
 let break_between c = Ast.break_between c.source (cmt_checker c)
 
+let is_jsx_element e =
+  match e.pexp_attributes with
+  | [{attr_name={txt="JSX";_}; attr_payload=PStr []; _}] -> true
+  | _ -> false
+
 type block =
   { opn: Fmt.t option
   ; pro: Fmt.t option
@@ -2273,11 +2278,6 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
   | Pexp_apply (e0, e1N1) -> (
       match pexp_attributes with
       | [{attr_name={txt="JSX";loc=_}; attr_payload=PStr []; _}] ->
-        let is_jsx_element e =
-          match e.pexp_attributes with
-          | [{attr_name={txt="JSX";_}; attr_payload=PStr []; _}] -> true
-          | _ -> false
-        in
         let children = ref None in
         let props = List.filter_map e1N1 ~f:(function
           | Labelled {txt="children";_}, {pexp_desc=Pexp_list es;pexp_loc;_} ->
@@ -2317,7 +2317,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                 flabel
               | _ ->
                 if is_jsx_element e then
-                  flabel $ str "=" $ fmt_expression c ~parens:true (sub_exp ~ctx e)
+                  flabel $ str "=(" $ fmt_expression c (sub_exp ~ctx e) $ str ")"
                 else
                   flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
             in
@@ -2328,25 +2328,24 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
             in
             space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
         in
-        Params.parens_if parens c.conf (
-          match !children with
-          | None -> hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
-          | Some (children_loc, []) when not (Cmts.has_after c.cmts children_loc) ->
-            hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
-          | Some (children_loc, children) ->
-            let head = hvbox 2 (start_tag () $ props $ str ">") in
-            let children =
-              hvbox 0 (
-                list children (break 1 0)
-                (fun e ->
-                  if is_jsx_element e then
-                    fmt_expression c ~parens:false (sub_exp ~ctx e)
-                  else
-                    fmt_expression c (sub_exp ~ctx e))
-                $ Cmts.fmt_after c children_loc)
-            in
-            hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag ())
-        )
+        begin match !children with
+        | None -> hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
+        | Some (children_loc, []) when not (Cmts.has_after c.cmts children_loc) ->
+          hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
+        | Some (children_loc, children) ->
+          let head = hvbox 2 (start_tag () $ props $ str ">") in
+          let children =
+            hvbox 0 (
+              list children (break 1 0)
+              (fun e ->
+                if is_jsx_element e then
+                  fmt_expression c ~parens:false (sub_exp ~ctx e)
+                else
+                  fmt_expression c (sub_exp ~ctx e))
+              $ Cmts.fmt_after c children_loc)
+          in
+          hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag ())
+        end
       | _ ->
       let wrap =
         if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2
