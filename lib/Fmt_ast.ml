@@ -2317,7 +2317,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                 flabel
               | _ ->
                 if is_jsx_element e then
-                  flabel $ str "=" $ fmt_expression c ~parens:true (sub_exp ~ctx e)
+                  flabel $ str "=(" $ fmt_expression c (sub_exp ~ctx e) $ str ")"
                 else
                   flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
             in
@@ -2328,25 +2328,24 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
             in
             space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
         in
-        Params.parens_if parens c.conf (
-          match !children with
-          | None -> hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
-          | Some (children_loc, []) when not (Cmts.has_after c.cmts children_loc) ->
-            hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
-          | Some (children_loc, children) ->
-            let head = hvbox 2 (start_tag () $ props $ str ">") in
-            let children =
-              hvbox 0 (
-                list children (break 1 0)
-                (fun e ->
-                  if is_jsx_element e then
-                    fmt_expression c ~parens:false (sub_exp ~ctx e)
-                  else
-                    fmt_expression c (sub_exp ~ctx e))
-                $ Cmts.fmt_after c children_loc)
-            in
-            hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag ())
-        )
+        begin match !children with
+        | None -> hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
+        | Some (children_loc, []) when not (Cmts.has_after c.cmts children_loc) ->
+          hvbox 2 (start_tag () $ props) $ space_break $ str "/>"
+        | Some (children_loc, children) ->
+          let head = hvbox 2 (start_tag () $ props $ str ">") in
+          let children =
+            hvbox 0 (
+              list children (break 1 0)
+              (fun e ->
+                if is_jsx_element e then
+                  fmt_expression c ~parens:false (sub_exp ~ctx e)
+                else
+                  fmt_expression c (sub_exp ~ctx e))
+              $ Cmts.fmt_after c children_loc)
+          in
+          hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag ())
+        end
       | _ ->
       let wrap =
         if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2

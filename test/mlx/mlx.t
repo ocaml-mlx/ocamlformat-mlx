@@ -163,6 +163,16 @@ Comments:
   $ echo '<App.name (* 1 *) />' | fmt
   <App.name (* 1 *) />
 
+Test for a lexer hack:
+  $ echo '[<element />; <element />]' | fmt
+  [ <element />; <element /> ]
+  $ echo '[<M.element />; <M.element />]' | fmt
+  [ <M.element />; <M.element /> ]
+  $ echo '[<element> 1 </element>]' | fmt
+  [ <element>1</element> ]
+  $ echo '[<M.element> 1 </M.element>]' | fmt
+  [ <M.element>1</M.element> ]
+
 JSX elements as props:
   $ echo 'let _ = <div element=(<span />) />' | fmt
   let _ = <div element=(<span />) />
