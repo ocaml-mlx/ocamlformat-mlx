@@ -18,7 +18,7 @@ No redundant values:
   disable=false
   margin-check=false
   max-iters=10
-  ocaml-version=4.04.0
+  ocaml-version=5.4.0
   quiet=false
   disable-conf-attrs=false
   version-check=true
@@ -58,6 +58,7 @@ No redundant values:
   let-binding-deindent-fun=true (profile conventional (file .ocamlformat:1))
   let-binding-spacing=compact (profile conventional (file .ocamlformat:1))
   let-module=compact (profile conventional (file .ocamlformat:1))
+  letop-punning=preserve (profile conventional (file .ocamlformat:1))
   line-endings=lf (profile conventional (file .ocamlformat:1))
   margin=80 (profile conventional (file .ocamlformat:1))
   match-indent=0 (profile conventional (file .ocamlformat:1))
@@ -98,7 +99,7 @@ Redundant values from the conventional profile:
   disable=false
   margin-check=false
   max-iters=10
-  ocaml-version=4.04.0
+  ocaml-version=5.4.0
   quiet=false
   disable-conf-attrs=false
   version-check=true
@@ -138,6 +139,7 @@ Redundant values from the conventional profile:
   let-binding-deindent-fun=true (profile conventional (file .ocamlformat:1))
   let-binding-spacing=compact (profile conventional (file .ocamlformat:1))
   let-module=compact (profile conventional (file .ocamlformat:1))
+  letop-punning=preserve (profile conventional (file .ocamlformat:1))
   line-endings=lf (profile conventional (file .ocamlformat:1))
   margin=80 (file .ocamlformat:3) -- Warning (redundant):  (profile conventional (file .ocamlformat:1))
   match-indent=0 (profile conventional (file .ocamlformat:1))
@@ -178,7 +180,7 @@ Redundant values from the ocamlformat profile:
   disable=false
   margin-check=false
   max-iters=10
-  ocaml-version=4.04.0
+  ocaml-version=5.4.0
   quiet=false
   disable-conf-attrs=false
   version-check=true
@@ -218,6 +220,7 @@ Redundant values from the ocamlformat profile:
   let-binding-deindent-fun=true (profile ocamlformat (file .ocamlformat:1))
   let-binding-spacing=compact (profile ocamlformat (file .ocamlformat:1))
   let-module=compact (profile ocamlformat (file .ocamlformat:1))
+  letop-punning=preserve (profile ocamlformat (file .ocamlformat:1))
   line-endings=lf (profile ocamlformat (file .ocamlformat:1))
   margin=80 (file .ocamlformat:3) -- Warning (redundant):  (profile ocamlformat (file .ocamlformat:1))
   match-indent=0 (profile ocamlformat (file .ocamlformat:1))

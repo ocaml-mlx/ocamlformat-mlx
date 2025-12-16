@@ -1638,6 +1638,7 @@ and fmt_function ?force_closing_paren ~ctx ~ctx0 ?pro ~wrap_intro
           in
           fmt_infix_ext_attrs c ~pro:function_ infix_ext_attrs
         in
+        let cmt_after_cases = Cmts.fmt_after c function_loc in
         let box_cases ~pro cases =
           let pro_inner, pro_outer, indent =
             (* Formatting of if-then-else relies on the ~box argument. *)
@@ -1658,8 +1659,9 @@ and fmt_function ?force_closing_paren ~ctx ~ctx0 ?pro ~wrap_intro
                   ( fmt_pattern c ~pro:(if_newline "| ") (sub_pat ~ctx pc_lhs)
                   $ space_break $ str "->" )
                 $ space_break
-                $ cbox 0 (fmt_expression c (sub_exp ~ctx pc_rhs)) )
-          | _ -> (box, fmt_cases c ctx cs)
+                $ cbox 0 (fmt_expression c (sub_exp ~ctx pc_rhs))
+                $ cmt_after_cases )
+          | _ -> (box, fmt_cases c ctx cs $ cmt_after_cases)
         in
         (fun_ $ function_, box_cases cases, box, 0)
   in
@@ -2646,14 +2648,16 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
              $ fmt_atrs ) )
   | Pexp_let (lbs, body, loc_in) ->
       let bindings =
-        Sugar.Let_binding.of_let_bindings ~ctx lbs.pvbs_bindings
+        Sugar.Let_binding.of_let_bindings ~ctx ~cmts:c.cmts lbs.pvbs_bindings
       in
       let fmt_expr = fmt_expression c (sub_exp ~ctx body) in
       pro
       $ fmt_let_bindings c ~ctx0:ctx ~parens ~fmt_atrs ~fmt_expr ~has_attr
           ~loc_in lbs.pvbs_rec bindings body
   | Pexp_letop {let_; ands; body; loc_in} ->
-      let bd = Sugar.Let_binding.of_binding_ops (let_ :: ands) in
+      let bd =
+        Sugar.Let_binding.of_binding_ops ~cmts:c.cmts (let_ :: ands)
+      in
       let fmt_expr = fmt_expression c (sub_exp ~ctx body) in
       pro
       $ fmt_let_bindings c ~ctx0:ctx ~parens ~fmt_atrs ~fmt_expr ~has_attr
@@ -3125,8 +3129,7 @@ and fmt_beginend c ~loc ?(box = true) ?(pro = noop) ~ctx ~ctx0 ~fmt_atrs
   let cmts_before = Cmts.fmt_before c ?eol loc in
   let begin_ = fmt_infix_ext_attrs c ~pro:(str "begin") infix_ext_attrs
   and end_ =
-    (if not box then break 1000 (-2) else break 1000 0)
-    $ str "end" $ fmt_atrs
+    Params.Exp.end_break_beginend ~ctx0 ~box $ str "end" $ fmt_atrs
   in
   let box_beginend_sb = Params.Exp.box_beginend_subexpr c.conf ~ctx ~ctx0 in
   let beginend_box =
@@ -3342,7 +3345,7 @@ and fmt_class_expr c ({ast= exp; ctx= ctx0} as xexp) =
         | _ -> c.conf.fmt_opts.indent_after_in.v
       in
       let bindings =
-        Sugar.Let_binding.of_let_bindings ~ctx lbs.pvbs_bindings
+        Sugar.Let_binding.of_let_bindings ~ctx ~cmts:c.cmts lbs.pvbs_bindings
       in
       let fmt_expr = fmt_class_expr c (sub_cl ~ctx body) in
       let has_attr = not (List.is_empty pcl_attributes) in
@@ -3932,7 +3935,17 @@ and fmt_functor_param c ctx {loc; txt= arg} =
                  ( hovbox 0 (fmt_str_loc_opt c name $ space_break $ str ": ")
                  $ compose_module (fmt_module_type c xmt) ~f:Fn.id ) ) ) )
 
-and fmt_module_type c ?(rec_ = false) ({ast= mty; _} as xmty) =
+and fmt_functor_param_type c ctx = function
+  | Pfunctorty_short args -> list args (break 1 2) (fmt_functor_param c ctx)
+  | Pfunctorty_keyword (attrs, args) ->
+      str "functor"
+      $ fmt_attributes c ~pre:Blank attrs
+      $ break 1 2
+      $ list args (break 1 2) (fmt_functor_param c ctx)
+  | Pfunctorty_unnamed arg ->
+      compose_module (fmt_module_type c (sub_mty ~ctx arg)) ~f:Fn.id
+
+and fmt_module_type c ?(rec_ = false) ({ast= mty; ctx= ctx0} as xmty) =
   let ctx = Mty mty in
   let {pmty_desc; pmty_loc; pmty_attributes} = mty in
   update_config_maybe_disabled_block c pmty_loc pmty_attributes
@@ -3976,24 +3989,33 @@ and fmt_module_type c ?(rec_ = false) ({ast= mty; _} as xmty) =
           Some
             ( str "end" $ after
             $ fmt_attributes_and_docstrings c pmty_attributes ) }
-  | Pmty_functor (args, mt, short) ->
-      let keyword =
-        if short && List.is_empty pmty_attributes then noop
-        else
-          str "functor"
-          $ fmt_attributes c ~pre:Blank pmty_attributes
-          $ break 1 2
-      in
+  | Pmty_functor (paramty, mt) ->
       let blk = fmt_module_type c (sub_mty ~ctx mt) in
+      let opn, cls =
+        match ctx0 with
+        (* Functor argument might not be boxed. Force a box when using the
+           short syntax. *)
+        | Mty {pmty_desc= Pmty_functor (Pfunctorty_unnamed lhs, _); _}
+          when phys_equal lhs mty ->
+            (Some (open_hovbox 2), close_box)
+        | _ -> (blk.opn, blk.cls)
+      in
       { blk with
-        pro=
+        opn
+      ; cls
+      ; pro=
           Some
             ( Cmts.fmt_before c pmty_loc
-            $ keyword
-            $ list args (break 1 2) (fmt_functor_param c ctx)
+            $ fmt_if parens (str "(")
+            $ fmt_functor_param_type c ctx paramty
             $ break 1 2 $ str "->"
             $ opt blk.pro (fun pro -> str " " $ pro) )
-      ; epi= Some (fmt_opt blk.epi $ Cmts.fmt_after c pmty_loc)
+      ; epi=
+          Some
+            ( fmt_opt blk.epi
+            $ fmt_if parens (str ")")
+            $ fmt_attributes c pmty_attributes ~pre:Space
+            $ Cmts.fmt_after c pmty_loc )
       ; psp=
           fmt_or (Option.is_none blk.pro)
             (fits_breaks " " ~hint:(1, 2) "")
@@ -4226,10 +4248,23 @@ and fmt_module c ctx ?rec_ ?epi ?(can_sparse = false) keyword ?(eqty = "=")
   let ext = attrs.attrs_extension in
   let blk_t =
     Option.value_map xmty ~default:empty ~f:(fun xmty ->
+        let break_before_ty =
+          match xmty.ast.pmty_desc with
+          (* Break functor types that use the short syntax and avoid
+             misaligning the parameter types. *)
+          | Pmty_functor
+              ( Pfunctorty_unnamed
+                  {pmty_desc= Pmty_with _ | Pmty_functor _; _}
+              , _ ) ->
+              break 1 2
+          | _ -> str " "
+        in
         let blk = fmt_module_type ?rec_ c xmty in
+        let pro =
+          str " " $ str eqty $ opt blk.pro (fun pro -> break_before_ty $ pro)
+        in
         { blk with
-          pro=
-            Some (str " " $ str eqty $ opt blk.pro (fun pro -> str " " $ pro))
+          pro= Some pro
         ; psp= fmt_if (Option.is_none blk.pro) (break 1 2) $ blk.psp } )
   in
   let blk_b = Option.value_map xbody ~default:empty ~f:(fmt_module_expr c) in
@@ -4770,7 +4805,9 @@ and fmt_structure_item c ~last:last_item ~semisemi {ctx= parent_ctx; ast= si}
       let fmt_item c ctx ~prev ~next b =
         let first = Option.is_none prev in
         let last = Option.is_none next in
-        let b = Sugar.Let_binding.of_let_binding ~ctx ~first b in
+        let b =
+          Sugar.Let_binding.of_let_binding ~ctx ~first ~cmts:c.cmts b
+        in
         let epi =
           match c.conf.fmt_opts.let_binding_spacing.v with
           | `Compact -> None

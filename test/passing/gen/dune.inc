@@ -874,6 +874,24 @@
 
 (rule
  (deps .ocamlformat)
+ (package ocamlformat)
+ (action
+  (with-stdout-to cases_exp_indent.ml.stdout
+   (with-stderr-to cases_exp_indent.ml.stderr
+     (run %{bin:ocamlformat} --name cases_exp_indent.ml --margin-check --nested-match=align --cases-exp-indent=4 %{dep:../tests/cases_exp_indent.ml})))))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff cases_exp_indent.ml.ref cases_exp_indent.ml.stdout)))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff cases_exp_indent.ml.err cases_exp_indent.ml.stderr)))
+
+(rule
+ (deps .ocamlformat)
  (enabled_if (<> %{os_type} Win32))
  (package ocamlformat)
  (action
@@ -1714,19 +1732,22 @@
 
 (rule
  (deps .ocamlformat)
+ (enabled_if (>= %{ocaml_version} 5.3))
  (package ocamlformat)
  (action
   (with-stdout-to effects.ml.stdout
    (with-stderr-to effects.ml.stderr
-     (run %{bin:ocamlformat} --name effects.ml --margin-check --ocaml-version=5.3 %{dep:../tests/effects.ml})))))
+     (run %{bin:ocamlformat} --name effects.ml --margin-check %{dep:../tests/effects.ml})))))
 
 (rule
  (alias runtest)
+ (enabled_if (>= %{ocaml_version} 5.3))
  (package ocamlformat)
  (action (diff effects.ml.ref effects.ml.stdout)))
 
 (rule
  (alias runtest)
+ (enabled_if (>= %{ocaml_version} 5.3))
  (package ocamlformat)
  (action (diff effects.ml.err effects.ml.stderr)))
 
@@ -2293,6 +2314,24 @@
  (alias runtest)
  (package ocamlformat)
  (action (diff function_indent.ml.err function_indent.ml.stderr)))
+
+(rule
+ (deps .ocamlformat)
+ (package ocamlformat)
+ (action
+  (with-stdout-to functor-414.ml.stdout
+   (with-stderr-to functor-414.ml.stderr
+     (run %{bin:ocamlformat} --name functor-414.ml --margin-check --ocaml-version=4.14 %{dep:../tests/functor.ml})))))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff functor-414.ml.ref functor-414.ml.stdout)))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff functor-414.ml.err functor-414.ml.stderr)))
 
 (rule
  (deps .ocamlformat)
@@ -3685,6 +3724,42 @@
  (alias runtest)
  (package ocamlformat)
  (action (diff let_module.ml.err let_module.ml.stderr)))
+
+(rule
+ (deps .ocamlformat)
+ (package ocamlformat)
+ (action
+  (with-stdout-to let_punning-denied.ml.stdout
+   (with-stderr-to let_punning-denied.ml.stderr
+     (run %{bin:ocamlformat} --name let_punning-denied.ml --margin-check --letop-punning=never --ocaml-version=4.14.0 %{dep:../tests/let_punning.ml})))))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff let_punning-denied.ml.ref let_punning-denied.ml.stdout)))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff let_punning-denied.ml.err let_punning-denied.ml.stderr)))
+
+(rule
+ (deps .ocamlformat)
+ (package ocamlformat)
+ (action
+  (with-stdout-to let_punning-preferred.ml.stdout
+   (with-stderr-to let_punning-preferred.ml.stderr
+     (run %{bin:ocamlformat} --name let_punning-preferred.ml --margin-check --letop-punning=always --ocaml-version=4.14.0 %{dep:../tests/let_punning.ml})))))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff let_punning-preferred.ml.ref let_punning-preferred.ml.stdout)))
+
+(rule
+ (alias runtest)
+ (package ocamlformat)
+ (action (diff let_punning-preferred.ml.err let_punning-preferred.ml.stderr)))
 
 (rule
  (deps .ocamlformat)

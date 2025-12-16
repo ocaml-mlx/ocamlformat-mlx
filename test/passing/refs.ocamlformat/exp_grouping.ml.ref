@@ -293,14 +293,14 @@ let _ =
 
 let _ =
   match x with
-  | A -> begin
-    match B with A -> fooooooooooooo
-  end
-  | A -> begin
-    match B with A -> fooooooooooooo | B -> fooooooooooooo
-  end
-  | A -> begin
-    match B with
+  | A ->
+    begin match B with A -> fooooooooooooo
+    end
+  | A ->
+    begin match B with A -> fooooooooooooo | B -> fooooooooooooo
+    end
+  | A ->
+    begin match B with
     | A ->
         fooooooooooooo
     | B ->
@@ -391,10 +391,10 @@ let _ =
 let _ =
   match x with
   | _ ->
-    (* xxx *)
-    begin
-      y
-    end
+      (* xxx *)
+      begin
+        y
+      end
 
 let _ = match x with _ -> begin[@foo] y end
 

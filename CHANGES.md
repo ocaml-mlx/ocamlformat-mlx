@@ -4,6 +4,108 @@ Items marked with an asterisk (\*) are changes that are likely to format
 existing code differently from the previous release when using the default
 profile. This started with version 0.26.0.
 
+## unreleased
+
+### Highlight
+
+- \* Update Odoc's parser to 3.0 (#2757, @Julow)
+  The indentation of code-blocks containing OCaml code is reduced by 2 to avoid
+  changing the generated documentation. The indentation within code-blocks is
+  now significative in Odoc and shows up in generated documentation.
+
+### Added
+
+- Added option `letop-punning` (#2746, @WardBrian) to control whether
+  punning is used in extended binding operators.
+  For example, the code `let+ x = x in ...` can be formatted as
+  `let+ x in ...` when `letop-punning=always`. With `letop-punning=never`, it
+  becomes `let+ x = x in ...`. The default is `preserve`, which will
+  only use punning when it exists in the source.
+  This also applies to `let%ext` bindings (#2747, @WardBrian).
+
+- Support the unnamed functor parameters syntax in module types
+  (#2755, #2759, @Julow)
+  ```ocaml
+  module type F = ARG -> S
+  ```
+  The following lines are now formatted as they are in the source file:
+  ```ocaml
+  module M : (_ : S) -> (_ : S) -> S = N
+  module M : S -> S -> S = N
+  (* The preceding two lines are no longer turned into this: *)
+  module M : (_ : S) (_ : S) -> S = N
+  ```
+
+### Fixed
+
+- Fix dropped comment in `(function _ -> x (* cmt *))` (#2739, @Julow)
+
+- \* `cases-matching-exp-indent=compact` does not impact `begin end` nodes that
+  don't have a match inside. (#2742, @EmileTrotignon)
+  ```ocaml
+  (* before *)
+  begin match () with
+  | () -> begin
+    f x
+  end
+  end
+  (* after *)
+  begin match () with
+  | () -> begin
+      f x
+    end
+  end
+  ```
+
+- `Ast_mapper` now iterates on *all* locations inside of Longident.t,
+  instead of only some.
+  (#2737, @v-gb)
+
+### Internal
+
+- Added information on writing tests to `CONTRIBUTING.md` (#2838, @WardBrian)
+
+### Changed
+
+- indentation of the `end` keyword in a match-case is now always at least 2. (#2742, @EmileTrotignon)
+  ```ocaml
+  (* before *)
+  begin match () with
+  | () -> begin
+    match () with
+    | () -> ()
+  end
+  end
+  (* after *)
+  begin match () with
+  | () -> begin
+    match () with
+    | () -> ()
+
+- \* use shortcut `begin end` in `match` cases and `if then else` body. (#2744, @EmileTrotignon)
+  ```ocaml
+  (* before *)
+  match () with
+  | () -> begin
+      match () with
+      | () ->
+    end
+  end
+  (* after *)
+  match () with
+  | () ->
+    begin match () with
+      | () ->
+    end
+  end
+  ```
+
+- \* Set the `ocaml-version` to `5.4` by default (#2750, @EmileTrotignon)
+  The main difference is that the `effect` keyword is recognized without having
+  to add `ocaml-version=5.3` to the configuration.
+  In exchange, code that use `effect` as an identifier must use
+  `ocaml-version=5.2`.
+
 ## 0.28.1
 
 ### Highlight
@@ -32,7 +134,7 @@ profile. This started with version 0.26.0.
 ### Added
 
 - Added option `module-indent` option (#2711, @HPRIOR) to control the indentation
-  of items within modules. This affects modules and signatures. For example, 
+  of items within modules. This affects modules and signatures. For example,
   module-indent=4:
   ```ocaml
   module type M = sig
@@ -140,7 +242,7 @@ profile. This started with version 0.26.0.
 - Fix a crash where `type%e nonrec t = t` was formatted as `type nonrec%e t = t`,
   which is invalid syntax. (#2712, @EmileTrotignon)
 
-- Fix commandline parsing being quadratic in the number of arguments 
+- Fix commandline parsing being quadratic in the number of arguments
   (#2724, @let-def)
 
 - \* Fix `;;` being added after a documentation comment (#2683, @EmileTrotignon)
