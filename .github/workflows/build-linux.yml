@@ -79,7 +79,8 @@ jobs:
         with:
           ocaml-compiler: "5.4"
 
-      - run: opam exec -- dune install
+      - name: Opam dependencies
+        run: opam install --deps-only -t .
 
       - run: opam install dune-release -y
 
