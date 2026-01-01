@@ -86,7 +86,7 @@ jobs:
       - run: opam install dune-release -y
 
       - name: Run dune-release
-        uses: davesnx/dune-release-action@v0.2.12
+        uses: davesnx/dune-release-action@v0.2.13
         with:
           packages: "ocamlformat-mlx,ocamlformat-mlx-lib"
           github-token: ${{ secrets.GH_TOKEN }}
