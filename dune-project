@@ -13,6 +13,8 @@
 
 (name ocamlformat-mlx)
 
+(version 0.28.1.2)
+
 (using menhir 2.1)
 
 (cram enable)
