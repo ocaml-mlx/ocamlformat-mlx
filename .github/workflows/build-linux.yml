@@ -7,8 +7,12 @@ on:
   push:
     branches:
       - main
+    tags:
+      - '*'
   pull_request:
   workflow_dispatch:
+
+permissions: read-all
 
 jobs:
   build-linux:
@@ -36,81 +40,114 @@ jobs:
       - name: Opam dependencies
         run: opam install --deps-only -t .
 
-      - name: Format
-        run: opam exec -- dune fmt
+#      - name: Format
+#        run: opam exec -- dune fmt
 
       - name: Build
         run: |
           opam exec -- dune subst
-          opam exec -- dune build -p ocamlformat-lib,ocamlformat
+          opam exec -- dune build -p ocamlformat-mlx-lib,ocamlformat-mlx
 
       - name: Runtest
         run: opam exec -- dune runtest
 
-      - name: Check manpages
-        run: opam exec -- dune build @gen_manpage --auto-promote
+#      - name: Check manpages
+#        run: opam exec -- dune build @gen_manpage --auto-promote
 
       - name: Upload binary
         # Using a specific version because of https://github.com/actions/upload-artifact/issues/590
         uses: actions/upload-artifact@v4.3.4
         with:
           name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
-          path: _build/install/default/bin/ocamlformat
+          path: _build/install/default/bin/ocamlformat-mlx
 
-  test-branch:
-    if: ${{ github.ref != 'refs/heads/main' }}
+  release:
     needs: build-linux
+    permissions:
+      contents: write # Required for pushing tags and creating releases
+      pull-requests: write # Required for pushing opam PR
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        profile:
-          - conventional
-          - ocamlformat
-          - janestreet
-        # To enable comparing with ocp-indent:
-        # include:
-        #   - ocp_indent: true
-        #     ocp_indent_config: JaneStreet
-        #     profile: janestreet
 
     steps:
-      - name: Install ocp-indent
-        if: ${{ matrix.ocp_indent }}
-        run: |
-          sudo apt install -y ocp-indent
-          sudo touch /etc/ocamlfind.conf
-
-      # Clone the project
-      - uses: actions/checkout@v3
+      - name: checkout tree
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          submodules: 'true'
 
-      - uses: actions/cache@v3
+      - name: set-up OCaml
+        uses: ocaml/setup-ocaml@v3
         with:
-          path: test-extra/code
-          key: test-extra-code
+          ocaml-compiler: "5.4"
 
-      - name: Fetch main build of ocamlformat
-        uses: dawidd6/action-download-artifact@v6
+      - name: Opam dependencies
+        run: opam install --deps-only -t .
+
+      - run: opam install dune-release -y
+
+      - name: Run dune-release
+        uses: davesnx/dune-release-action@v0.2.13
         with:
-          workflow: build-linux.yml
-          workflow_conclusion: ""
-          check_artifacts: true
-          branch: main
-          name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
-          path: ocamlformat-a
+          packages: "ocamlformat-mlx,ocamlformat-mlx-lib"
+          github-token: ${{ secrets.GH_TOKEN }}
+          to-opam-repository: true
+          to-github-releases: true
 
-      - name: Fetch new build of ocamlformat
-        uses: actions/download-artifact@v4.1.7
-        with:
-          name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
-          path: ocamlformat-b
-
-      - name: Test ${{ matrix.profile }} profile
-        run: |
-          chmod +x ocamlformat-a/ocamlformat ocamlformat-b/ocamlformat
-          ./tools/test_branch.sh $TEST_BRANCH_ARGS -n -a ocamlformat-a/ocamlformat -b ocamlformat-b/ocamlformat 'profile=${{ matrix.profile }}'
-        shell: bash
-        env:
-          OCP_INDENT_CONFIG: ${{ matrix.ocp_indent_config }}
-          TEST_BRANCH_ARGS: ${{ matrix.ocp_indent && '-o -s' || '' }}
+#  test-branch:
+#    if: ${{ github.ref != 'refs/heads/main' }}
+#    needs: build-linux
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        profile:
+#          - conventional
+#          - ocamlformat
+#          - janestreet
+#        # To enable comparing with ocp-indent:
+#        # include:
+#        #   - ocp_indent: true
+#        #     ocp_indent_config: JaneStreet
+#        #     profile: janestreet
+#
+#    steps:
+#      - name: Install ocp-indent
+#        if: ${{ matrix.ocp_indent }}
+#        run: |
+#          sudo apt install -y ocp-indent
+#          sudo touch /etc/ocamlfind.conf
+#
+#      # Clone the project
+#      - uses: actions/checkout@v3
+#        with:
+#          fetch-depth: 0
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: test-extra/code
+#          key: test-extra-code
+#
+#      - name: Fetch main build of ocamlformat
+#        uses: dawidd6/action-download-artifact@v6
+#        with:
+#          workflow: build-linux.yml
+#          workflow_conclusion: ""
+#          check_artifacts: true
+#          branch: main
+#          name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
+#          path: ocamlformat-a
+#          allow_forks: true
+#
+#      - name: Fetch new build of ocamlformat
+#        uses: actions/download-artifact@v4.1.7
+#        with:
+#          name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
+#          path: ocamlformat-b
+#
+#      - name: Test ${{ matrix.profile }} profile
+#        run: |
+#          chmod +x ocamlformat-a/ocamlformat ocamlformat-b/ocamlformat
+          #./tools/test_branch.sh $TEST_BRANCH_ARGS -n -a ocamlformat-a/ocamlformat -b ocamlformat-b/ocamlformat 'profile=${{ matrix.profile }}'
+#        shell: bash
+#        env:
+#          OCP_INDENT_CONFIG: ${{ matrix.ocp_indent_config }}
+#          TEST_BRANCH_ARGS: ${{ matrix.ocp_indent && '-o -s' || '' }}

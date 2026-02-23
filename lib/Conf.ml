@@ -1518,8 +1518,11 @@ let parse_line config ?(version_check = config.opr_opts.version_check.v)
     let value = String.strip value in
     match (name, from) with
     | "version", `File _ ->
-        if String.equal Version.current value || not version_check then
-          Ok config
+        let version_matches =
+          String.equal Version.current value
+          || String.is_prefix Version.current ~prefix:(value ^ ".")
+        in
+        if version_matches || not version_check then Ok config
         else
           Error
             (Error.Version_mismatch {read= value; installed= Version.current})

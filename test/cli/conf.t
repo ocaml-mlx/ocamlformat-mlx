@@ -44,3 +44,12 @@ Invalid value:
   $ echo 'field-space = unknown_value' > .ocamlformat
   $ echo 'let x = 1' | ocamlformat --impl - 2>/dev/null
   [1]
+
+Compatible version prefix:
+
+  $ base_version=$(ocamlformat --version | awk -F. 'NF>3 {NF--; OFS="."; print; next} {print}')
+  $ echo "version = $base_version" > .ocamlformat
+  $ <a.ml ocamlformat --impl -
+  let x = "Hello World"
+  $ <a.ml ocamlformat-mlx --impl -
+  let x = "Hello World"
