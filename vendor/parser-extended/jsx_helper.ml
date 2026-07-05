@@ -80,3 +80,79 @@ let make_jsx_element ~raise ~loc:_ ~tag ~end_tag ~props ~children () =
   in
   let props = (Labelled {txt="children"; loc=children.pexp_loc}, children) :: props in
   Pexp_apply (tag, (Nolabel, unit) :: props)
+
+(** A [@JSX] application that can be printed with JSX syntax. *)
+type element = {
+  tag : string;
+  tag_loc : Location.t;
+  props : (arg_label * expression) list;
+  children_loc : Location.t;
+  children : expression list;
+}
+
+(** Classify a [@JSX] application. JSX syntax can only express applications
+    of the exact shape produced by [make_jsx_element]: an identifier tag
+    applied to one unlabelled [()] argument, one [~children] argument that
+    is a list literal, and labelled or optional props. Hand-written [@JSX]
+    applications may have any other shape (see
+    ocaml-mlx/ocamlformat-mlx#12), in which case [None] is returned and the
+    application must be printed as a regular application. *)
+let classify_element ~attrs e0 args =
+  let tag =
+    let rec ident_of = function
+      | Lident name -> Some name
+      | Ldot (id, name) ->
+        Option.map (fun path -> path ^ "." ^ name.txt) (ident_of id.txt)
+      | Lapply _ -> None
+    in
+    match e0.pexp_desc with
+    | Pexp_ident { txt = Lident name; loc } -> Some (name, loc)
+    | Pexp_ident { txt = Ldot (id, name); loc = _ } ->
+      Option.map
+        (fun path ->
+          let tag =
+            (* [<Foo />] is parsed as [Foo.createElement]. *)
+            match name.txt with
+            | "createElement" -> path
+            | name -> path ^ "." ^ name
+          in
+          (tag, e0.pexp_loc))
+        (ident_of id.txt)
+    | _ -> None
+  in
+  let units, children, props =
+    List.fold_right
+      (fun arg (units, children, props) ->
+        match arg with
+        | ( Nolabel,
+            { pexp_desc = Pexp_construct ({ txt = Lident "()"; _ }, None);
+              pexp_attributes = [];
+              _ } ) ->
+          (() :: units, children, props)
+        | ( Labelled { txt = "children"; _ },
+            { pexp_desc = Pexp_list es; pexp_attributes = []; pexp_loc; _ } )
+          ->
+          (units, (pexp_loc, es) :: children, props)
+        | ( Labelled { txt = "children"; _ },
+            { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None);
+              pexp_attributes = [];
+              pexp_loc;
+              _ } ) ->
+          (units, (pexp_loc, []) :: children, props)
+        | arg -> (units, children, arg :: props))
+      args ([], [], [])
+  in
+  let is_prop = function
+    | Labelled { txt = "children"; _ }, _ ->
+      false (* punned or not a list literal *)
+    | (Labelled _ | Optional _), _ -> true
+    | Nolabel, _ -> false
+  in
+  match (attrs, tag, units, children) with
+  | ( [ { attr_name = { txt = "JSX"; _ }; attr_payload = PStr []; _ } ],
+      Some (tag, tag_loc),
+      [ () ],
+      [ (children_loc, children) ] )
+    when List.for_all is_prop props ->
+    Some { tag; tag_loc; props; children_loc; children }
+  | _ -> None

@@ -281,3 +281,33 @@ Raw identifiers in JSX:
   let _ = <element loading=`\#lazy />
   $ echo 'let _ = <\#foo />' | fmt
   let _ = <\#foo />
+
+Hand-written [@JSX] applications are canonicalized to JSX syntax when
+expressible (ocaml-mlx/ocamlformat-mlx#12):
+  $ echo 'let _ = ReactDOM.Client.render root ((App.createElement ~children:[] ()) [@JSX ])' | fmt
+  let _ = ReactDOM.Client.render root <App />
+  $ echo 'let _ = ((App.createElement ~children:[x; y] ()) [@JSX])' | fmt
+  let _ = <App>x y</App>
+  $ echo 'let _ = ((App.createElement ~children:[] ~foo:1 ?bar ()) [@JSX])' | fmt
+  let _ = <App foo=1 ?bar />
+  $ echo 'let _ = ((div ~children:[] ()) [@JSX])' | fmt
+  let _ = <div />
+  $ echo 'let _ = ((Foo.div ~children:[x] ()) [@JSX])' | fmt
+  let _ = <Foo.div>x</Foo.div>
+
+Hand-written [@JSX] applications that JSX syntax cannot express are kept as
+regular applications:
+  $ echo 'let _ = ((App.createElement ~children ()) [@JSX])' | fmt
+  let _ = App.createElement ~children () [@JSX]
+  $ echo 'let _ = ((App.createElement ~children:(make_children ()) ()) [@JSX])' | fmt
+  let _ = App.createElement ~children:(make_children ()) () [@JSX]
+  $ echo 'let _ = ((App.createElement ~children:[]) [@JSX])' | fmt
+  let _ = App.createElement ~children:[] [@JSX]
+  $ echo 'let _ = ((App.createElement ()) [@JSX])' | fmt
+  let _ = App.createElement () [@JSX]
+  $ echo 'let _ = ((App.createElement x ~children:[] ()) [@JSX])' | fmt
+  let _ = App.createElement x ~children:[] () [@JSX]
+  $ echo 'let _ = ((App.createElement ~children:[] ~children:[] ()) [@JSX])' | fmt
+  let _ = App.createElement ~children:[] ~children:[] () [@JSX]
+  $ echo 'let _ = (((get_component ()) ~children:[] ()) [@JSX])' | fmt
+  let _ = (get_component ()) ~children:[] () [@JSX]
