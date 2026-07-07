@@ -29,6 +29,21 @@ let docstring (c : Conf.t) =
 let sort_attributes : attributes -> attributes =
   List.sort ~compare:Poly.compare
 
+(* JSX syntax parses to an application with the unlabelled [()] argument
+   first and [~children] second. Hand-written [@JSX] applications may use
+   any other order (e.g. [App.createElement ~children:[] ()]) and are
+   canonicalized when printed with JSX syntax, so the argument order is
+   normalized before comparing ASTs. *)
+let sort_jsx_args args =
+  let arg_index (lbl, arg) =
+    match (lbl, arg.pexp_desc) with
+    | Asttypes.Nolabel, Pexp_construct ({txt= Lident "()"; _}, None) -> 0
+    | Asttypes.Labelled "children", _ -> 1
+    | _ -> 2
+  in
+  List.stable_sort args ~compare:(fun a b ->
+      Int.compare (arg_index a) (arg_index b) )
+
 let make_mapper conf ~ignore_doc_comments =
   let open Ast_helper in
   (* remove locations *)
@@ -92,6 +107,11 @@ let make_mapper conf ~ignore_doc_comments =
           (Exp.sequence ~loc:loc1 ~attrs:attrs1
              (Exp.sequence ~loc:loc2 ~attrs:attrs2 exp1 exp2)
              exp3 )
+    | Pexp_apply (e0, args)
+      when List.exists attrs1 ~f:(fun a ->
+               String.equal a.attr_name.txt "JSX" ) ->
+        Ast_mapper.default_mapper.expr m
+          {exp with pexp_desc= Pexp_apply (e0, sort_jsx_args args)}
     | _ -> Ast_mapper.default_mapper.expr m exp
   in
   let pat (m : Ast_mapper.mapper) pat =
