@@ -503,6 +503,12 @@ let delim_ext = (lowercase | uppercase | utf8)*
 
 let symbolchar =
   ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
+let symbolchar_no_prefix =
+  ['$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
+let symbolchar_no_greater =
+  ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '<' '=' '?' '@' '^' '|' '~']
+let symbolchar_no_less =
+  ['!' '$' '%' '&' '*' '+' '-' '.' '/' ':' '=' '>' '?' '@' '^' '|' '~']
 let dotsymbolchar =
   ['!' '$' '%' '&' '*' '+' '-' '/' ':' '=' '>' '?' '@' '^' '|']
 let symbolchar_or_hash =
@@ -575,6 +581,14 @@ rule token = parse
       }
   | lowercase identchar * as name
       { find_keyword lexbuf name }
+  | "<" raw_ident_escape (lowercase identchar * as name)
+      { JSX_LIDENT ("\\#" ^ name) }
+  | "<" (lowercase identchar * as name)
+      { JSX_LIDENT name }
+  | "<" "/" raw_ident_escape (lowercase identchar * as name)
+      { JSX_LIDENT_E ("\\#" ^ name) }
+  | "<" "/" (lowercase identchar * as name)
+      { JSX_LIDENT_E name }
   | uppercase identchar * as name
       { UIDENT name } (* No capitalized keywords *)
   | (raw_ident_escape? as escape) (ident_ext as raw_name)
@@ -589,6 +603,10 @@ rule token = parse
           (* Compared to upstream, the raw_ident_escape is part of the lident. *)
           LIDENT (escape ^ name)
       } (* No non-ascii keywords *)
+  | "<" (uppercase identchar * as name)
+      { JSX_UIDENT name }
+  | "<" "/" (uppercase identchar * as name)
+      { JSX_UIDENT_E name }
   | int_literal as lit { INT (lit, None) }
   | (int_literal as lit) (literal_modifier as modif)
       { INT (lit, Some modif) }
@@ -713,6 +731,7 @@ rule token = parse
   | ";"  { SEMI }
   | ";;" { SEMISEMI }
   | "<"  { LESS }
+  (* | "</" { LESSSLASH } *)
   | "<-" { LESSMINUS }
   | "="  { EQUAL }
   | "["  { LBRACKET }
@@ -726,7 +745,7 @@ rule token = parse
   | "||" { BARBAR }
   | "|]" { BARRBRACKET }
   | ">"  { GREATER }
-  | ">]" { GREATERRBRACKET }
+  | "/>" { SLASHGREATER }
   | "}"  { RBRACE }
   | ">}" { GREATERRBRACE }
   | "[@" { LBRACKETAT }
@@ -746,7 +765,11 @@ rule token = parse
             { PREFIXOP op }
   | ['~' '?'] symbolchar_or_hash + as op
             { PREFIXOP op }
-  | ['=' '<' '>' '|' '&' '$'] symbolchar * as op
+  | ['<' '|' '&' '$'] symbolchar * as op
+            { INFIXOP0 op }
+  | '=' symbolchar_no_prefix * as op
+            { INFIXOP0 op }
+  | ">" symbolchar_no_less * as op
             { INFIXOP0 op }
   | ['@' '^'] symbolchar * as op
             { INFIXOP1 op }
@@ -756,7 +779,9 @@ rule token = parse
             { INFIXOP4 op }
   | '%'     { PERCENT }
   | '/'     { SLASH }
-  | ['*' '/' '%'] symbolchar * as op
+  | ['*' '%'] symbolchar * as op
+            { INFIXOP3 op }
+  | "/" symbolchar_no_greater * as op
             { INFIXOP3 op }
   | '#' symbolchar_or_hash + as op
             { HASHOP op }
@@ -966,6 +991,28 @@ and skip_hash_bang = parse
            preceded by a blank line *)
 
   and docstring = Docstrings.docstring
+
+  let token_with_comments lexbuf =
+    match token_with_comments lexbuf with
+    | LBRACKETLESS ->
+      (* Check if the next character (if any) could start an identifier.
+         UIDENT starts with A-Z, LIDENT starts with a-z or _ *)
+      let should_split =
+        lexbuf.Lexing.lex_curr_pos < lexbuf.Lexing.lex_buffer_len &&
+        begin
+          let next = Bytes.get lexbuf.Lexing.lex_buffer lexbuf.Lexing.lex_curr_pos in
+          next >= 'A' && next <= 'Z' || next >= 'a' && next <= 'z' || next = '_'
+        end
+      in
+      if should_split then begin
+        (* Backtrack one character to before the "<" so it will be lexed separately *)
+        lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - 1;
+        let lex_curr_p = lexbuf.lex_curr_p in
+        lexbuf.lex_curr_p <- { lex_curr_p with pos_cnum = lex_curr_p.pos_cnum - 1 };
+        LBRACKET
+      end else
+        LBRACKETLESS
+    | tok -> tok
 
   let token lexbuf =
     let post_pos = lexeme_end_p lexbuf in

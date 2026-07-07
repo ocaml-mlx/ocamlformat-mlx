@@ -59,6 +59,13 @@ let cmt_checker {cmts; _} =
 
 let break_between c = Ast.break_between c.source (cmt_checker c)
 
+let is_jsx_element e =
+  match e.pexp_attributes with
+  | [{attr_name={txt="JSX";_}; attr_payload=PStr []; _}] -> true
+  | _ -> false
+
+module Jsx = Ocamlformat_parser_extended.Jsx_helper
+
 type block =
   { opn: Fmt.t option
   ; pro: Fmt.t option
@@ -2273,6 +2280,50 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
              $ fmt_expression c ~box (sub_exp ~ctx e)
              $ fmt_atrs ) )
   | Pexp_apply (e0, e1N1) -> (
+      match Jsx.classify_element ~attrs:pexp_attributes e0 e1N1 with
+      | Some {Jsx.tag; tag_loc; props; children_loc; children} ->
+        let start_tag = str ("<" ^ tag) $ Cmts.fmt_after c tag_loc in
+        let end_tag = str ("</" ^ tag ^ ">") in
+        let props =
+          match props with
+          | [] -> noop
+          | props ->
+            let fmt_labelled ?(prefix="") label e =
+              let flabel = str (Printf.sprintf "%s%s" prefix label.txt) in
+              match e.pexp_desc with
+              | Pexp_ident {txt=Lident id; loc=_} when String.equal id label.txt ->
+                flabel
+              | _ ->
+                if is_jsx_element e then
+                  flabel $ str "=(" $ fmt_expression c (sub_exp ~ctx e) $ str ")"
+                else
+                  flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
+            in
+            let fmt_prop = function
+              | Nolabel, _ -> assert false (* excluded by classification *)
+              | Labelled label, e -> fmt_labelled label e
+              | Optional label, e -> fmt_labelled ~prefix:"?" label e
+            in
+            space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
+        in
+        begin match children with
+        | [] when not (Cmts.has_after c.cmts children_loc) ->
+          hvbox 2 (start_tag $ props) $ space_break $ str "/>"
+        | children ->
+          let head = hvbox 2 (start_tag $ props $ str ">") in
+          let children =
+            hvbox 0 (
+              list children (break 1 0)
+              (fun e ->
+                if is_jsx_element e then
+                  fmt_expression c ~parens:false (sub_exp ~ctx e)
+                else
+                  fmt_expression c (sub_exp ~ctx e))
+              $ Cmts.fmt_after c children_loc)
+          in
+          hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
+        end
+      | None ->
       let wrap =
         if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2
       in
