@@ -43,7 +43,7 @@
   "OCamlFormat is a tool to automatically format OCaml .mlx code in a uniform style.")
  (depends
   (ocaml
-   (>= 4.08))
+   (>= 4.14))
   (alcotest
    (and
     :with-test
