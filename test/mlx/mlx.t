@@ -163,6 +163,24 @@ Comments:
   $ echo '<App.name (* 1 *) />' | fmt
   <App.name (* 1 *) />
 
+  $ echo '<div> <a /> (* 1 *) <b /> </div>' | fmt
+  <div><a /> (* 1 *) <b /></div>
+  $ echo '<div>  (* 1 *) <b /> </div>' | fmt
+  <div>(* 1 *) <b /></div>
+  $ echo '<div> <a /> (* 1 *)  </div>' | fmt
+  <div><a /> (* 1 *)</div>
+  $ echo '<div>  (* 1 *)  </div>' | fmt
+  <div> (* 1 *)</div>
+
+  $ echo '((* before a parenthesised JSX child *) <form/>)' | fmt
+  (* before a parenthesised JSX child *) <form />
+  $ echo '(<form/> (* after a parenthesised JSX child *))' | fmt
+  <form /> (* after a parenthesised JSX child *)
+  $ echo '(if cond then (* before a JSX branch *) <form/> else JSX.null)' | fmt
+  if cond then (* before a JSX branch *) <form /> else JSX.null
+  $ echo 'if cond then (* before a JSX branch *) <form/> else JSX.null' | fmt
+  if cond then (* before a JSX branch *) <form /> else JSX.null
+
 Test for a lexer hack:
   $ echo '[<element />; <element />]' | fmt
   [ <element />; <element /> ]

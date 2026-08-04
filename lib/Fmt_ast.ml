@@ -2304,7 +2304,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
              $ fmt_atrs ) )
   | Pexp_apply (e0, e1N1) -> (
       match Jsx.classify_element ~attrs:pexp_attributes e0 e1N1 with
-      | Some {Jsx.tag; tag_loc; props; children_loc; children} ->
+      | Some {Jsx.tag; tag_loc; props; children_loc; children; loc= jsx_loc} ->
         let start_tag = str ("<" ^ tag) $ Cmts.fmt_after c tag_loc in
         let end_tag = str ("</" ^ tag ^ ">") in
         let props =
@@ -2329,7 +2329,13 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
             in
             space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
         in
-        begin match children with
+        (* Comments surrounding a parenthesised JSX element attach to the
+           [@JSX] attribute's whole-element location ([jsx_loc]); emit them
+           here since the attribute is rendered as JSX syntax rather than as
+           a regular attribute. *)
+        pro
+        $ Cmts.fmt c jsx_loc
+        @@ begin match children with
         | [] when not (Cmts.has_after c.cmts children_loc) ->
           hvbox 2 (start_tag $ props) $ space_break $ str "/>"
         | children ->

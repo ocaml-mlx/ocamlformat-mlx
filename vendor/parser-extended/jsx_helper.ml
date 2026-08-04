@@ -88,6 +88,8 @@ type element = {
   props : (arg_label * expression) list;
   children_loc : Location.t;
   children : expression list;
+  loc : Location.t;
+      (** Location of the [@JSX] attribute, which spans the whole element. *)
 }
 
 (** Classify a [@JSX] application. JSX syntax can only express applications
@@ -149,10 +151,10 @@ let classify_element ~attrs e0 args =
     | Nolabel, _ -> false
   in
   match (attrs, tag, units, children) with
-  | ( [ { attr_name = { txt = "JSX"; _ }; attr_payload = PStr []; _ } ],
+  | ( [ { attr_name = { txt = "JSX"; _ }; attr_payload = PStr []; attr_loc } ],
       Some (tag, tag_loc),
       [ () ],
       [ (children_loc, children) ] )
     when List.for_all is_prop props ->
-    Some { tag; tag_loc; props; children_loc; children }
+    Some { tag; tag_loc; props; children_loc; children; loc = attr_loc }
   | _ -> None
