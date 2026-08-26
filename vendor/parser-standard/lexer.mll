@@ -573,14 +573,18 @@ rule token = parse
       }
   | lowercase identchar * as name
       { find_keyword lexbuf name }
-  | "<" raw_ident_escape (lowercase identchar * as name)
-      { JSX_LIDENT name }
-  | "<" (lowercase identchar * as name)
-      { JSX_LIDENT name }
-  | "<" "/" raw_ident_escape (lowercase identchar * as name)
-      { JSX_LIDENT_E name }
-  | "<" "/" (lowercase identchar * as name)
-      { JSX_LIDENT_E name }
+  | "<" (raw_ident_escape? as escape) (ident_ext as raw_name)
+      { let name = ident_for_extended lexbuf raw_name in
+        if Utf8_lexeme.is_capitalized name then
+          if escape="" then JSX_UIDENT name
+          else error lexbuf (Capitalized_raw_identifier name)
+        else JSX_LIDENT name }
+  | "<" "/" (raw_ident_escape? as escape) (ident_ext as raw_name)
+      { let name = ident_for_extended lexbuf raw_name in
+        if Utf8_lexeme.is_capitalized name then
+          if escape="" then JSX_UIDENT_E name
+          else error lexbuf (Capitalized_raw_identifier name)
+        else JSX_LIDENT_E name }
   | uppercase identchar * as name
       { UIDENT name } (* No capitalized keywords *)
   | (raw_ident_escape? as escape) (ident_ext as raw_name)
@@ -594,10 +598,6 @@ rule token = parse
         end else
           LIDENT name
       } (* No non-ascii keywords *)
-  | "<" (uppercase identchar * as name)
-      { JSX_UIDENT name }
-  | "<" "/" (uppercase identchar * as name)
-      { JSX_UIDENT_E name }
   | int_literal as lit { INT (lit, None) }
   | (int_literal as lit) (literal_modifier as modif)
       { INT (lit, Some modif) }

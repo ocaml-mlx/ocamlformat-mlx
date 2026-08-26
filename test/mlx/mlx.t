@@ -14,6 +14,17 @@ Basics:
   $ echo '<div>child1 child2</div>' | fmt
   <div>child1 child2</div>
 
+UTF-8 source text and identifiers:
+  $ printf '%s\n' '(** Text — arrow → emoji 🌟 and Japanese 東京. *)' 'let message = "“Quoted” text isn’t ASCII"' | fmt
+  (** Text — arrow → emoji 🌟 and Japanese 東京. *)
+  let message = "“Quoted” text isn’t ASCII"
+
+  $ echo 'let _ = <élément été=1><Élément /></élément>' | fmt
+  let _ = <élément été=1><Élément /></élément>
+
+  $ echo 'let _ = <Élément />' | fmt
+  let _ = <Élément />
+
 Prop wrapping:
   $ echo '<main className="some" className="another" className="third" />' | fmt --margin=50
   <main
