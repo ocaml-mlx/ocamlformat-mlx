@@ -14,6 +14,15 @@ Basics:
   $ echo '<div>child1 child2</div>' | fmt
   <div>child1 child2</div>
 
+UTF-8 source text:
+  $ printf '%s\n' '(** Text — arrow → emoji 🌟 and Japanese 東京. *)' 'let message = "“Quoted” text isn’t ASCII"' | fmt
+  (** Text — arrow → emoji 🌟 and Japanese 東京. *)
+  let message = "“Quoted” text isn’t ASCII"
+
+  $ printf '%s\n' 'let quoted = {|“Quoted” text 東京 🌟|}' 'let delimited = {utf|“Quoted” text 東京 🌟|utf}' | fmt
+  let quoted = {|“Quoted” text 東京 🌟|}
+  let delimited = {utf|“Quoted” text 東京 🌟|utf}
+
 Prop wrapping:
   $ echo '<main className="some" className="another" className="third" />' | fmt --margin=50
   <main
