@@ -4,6 +4,17 @@ Items marked with an asterisk (\*) are changes that are likely to format
 existing code differently from the previous release when using the default
 profile. This started with version 0.26.0.
 
+## unreleased
+
+### Fixed
+
+- Fix JSX elements closed directly before `|]` in array literals (e.g.
+  `[|<div>aa</div>|]`) and before `}` in record/braced expressions (e.g.
+  `{x = <div>a</div>}`), which previously failed to parse because the
+  lexer read `>|]` as the `>|` operator followed by `]`, and `>}` as the
+  single object-override closer token, instead of giving the `>` back to
+  close the JSX tag.
+
 ## 0.29.0
 
 ### Highlight

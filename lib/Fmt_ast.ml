@@ -2990,6 +2990,19 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                  pcstr_fields
              $ fmt_atrs ) )
   | Pexp_override l -> (
+      (* The object-override closer is now printed as two tokens, [>] then
+         [}] (mlx JSX support requires the lexer to be able to give the [>]
+         back to close a JSX tag directly before [}]). Because the grammar
+         shares LALR states across every field's value and the closer's
+         trailing [>], a field whose value is an unparenthesized top-level
+         [>] comparison is grammatically ambiguous with the closer -
+         wherever that field sits in the list, not only when it is last;
+         force parens around such a value so the printed output re-parses. *)
+      let is_bare_greater_comparison f =
+        match f.pexp_desc with
+        | Pexp_infix ({txt= ">"; _}, _, _) -> true
+        | _ -> false
+      in
       let fmt_field ({txt; loc}, f) =
         let eol = break 1 3 in
         let txt = Longident.lident txt in
@@ -2999,9 +3012,11 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                && List.is_empty f.pexp_attributes ->
             Cmts.fmt c ~eol loc @@ fmt_longident c txt'
         | _ ->
+            let force_parens = is_bare_greater_comparison f in
             Cmts.fmt c ~eol loc @@ fmt_longident c txt
             $ str " = "
-            $ fmt_expression c (sub_exp ~ctx f)
+            $ Params.parens_if force_parens c.conf
+                (fmt_expression c (sub_exp ~ctx f))
       in
       match l with
       | [] ->

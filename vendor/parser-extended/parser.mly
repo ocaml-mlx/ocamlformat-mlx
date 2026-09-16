@@ -2655,17 +2655,17 @@ simple_expr:
       { Pexp_prefix($1, $2) }
   | op(BANG {"!"}) simple_expr
       { Pexp_prefix($1, $2) }
-  | LBRACELESS object_expr_content GREATERRBRACE
+  | LBRACELESS object_expr_content GREATER RBRACE
       { Pexp_override $2 }
   | LBRACELESS object_expr_content error
       { unclosed "{<" $loc($1) ">}" $loc($3) }
-  | LBRACELESS GREATERRBRACE
+  | LBRACELESS GREATER RBRACE
       { Pexp_override [] }
   | simple_expr DOT mkrhs(label_longident)
       { Pexp_field($1, $3) }
   | od=open_dot_declaration DOT LPAREN seq_expr RPAREN
       { Pexp_open(od, $4) }
-  | od=open_dot_declaration DOT LBRACELESS object_expr_content GREATERRBRACE
+  | od=open_dot_declaration DOT LBRACELESS object_expr_content GREATER RBRACE
       { (* TODO: review the location of Pexp_override *)
         Pexp_open(od, mkexp ~loc:$sloc (Pexp_override $4)) }
   | mod_longident DOT LBRACELESS object_expr_content error
