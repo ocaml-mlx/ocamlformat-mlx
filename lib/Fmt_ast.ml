@@ -2336,9 +2336,9 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
         pro
         $ Cmts.fmt c jsx_loc
         @@ begin match children with
-        | [] when not (Cmts.has_after c.cmts children_loc) ->
+        | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->
           hvbox 2 (start_tag $ props) $ space_break $ str "/>"
-        | children ->
+        | Jsx.Children children ->
           let head = hvbox 2 (start_tag $ props $ str ">") in
           let children =
             hvbox 0 (
@@ -2351,6 +2351,26 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
               $ Cmts.fmt_after c children_loc)
           in
           hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
+        | Jsx.Spread e ->
+          let head = hvbox 2 (start_tag $ props $ str ">") in
+          (* leading comments are consumed before emitting "..." so they print in front of it *)
+          let cmts_before =
+            if Cmts.has_before c.cmts e.pexp_loc then
+              Cmts.fmt_before c e.pexp_loc
+            else noop
+          in
+          let child_expr =
+            if is_jsx_element e then
+              fmt_expression c ~parens:false (sub_exp ~ctx e)
+            else
+              fmt_expression c (sub_exp ~ctx e)
+          in
+          let child =
+            hvbox 0 (
+              cmts_before $ str "..." $ child_expr
+              $ Cmts.fmt_after c children_loc)
+          in
+          hvbox 2 (head $ break 0 0 $ child $ break 0 (-2) $ end_tag)
         end
       | None ->
       let wrap =

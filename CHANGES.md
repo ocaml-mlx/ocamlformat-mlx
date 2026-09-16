@@ -6,6 +6,13 @@ profile. This started with version 0.26.0.
 
 ## unreleased
 
+### Added
+
+- Support mlx JSX children spread syntax: `<Foo> ...expr </Foo>` parses and
+  prints back as a spread; a non-list `~children` in a hand-written `[@JSX]`
+  application now also prints as a spread instead of a raw application
+  (#16, ocaml-mlx/mlx#45)
+
 ### Fixed
 
 - Fix JSX elements closed directly before `|]` in array literals (e.g.

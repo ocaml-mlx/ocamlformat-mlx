@@ -81,13 +81,16 @@ let make_jsx_element ~raise ~loc:_ ~tag ~end_tag ~props ~children () =
   let props = (Labelled {txt="children"; loc=children.pexp_loc}, children) :: props in
   Pexp_apply (tag, (Nolabel, unit) :: props)
 
+(** The children of a JSX element: a list of children, or a single spread child (`<Foo> ...expr </Foo>`). *)
+type jsx_children = Children of expression list | Spread of expression
+
 (** A [@JSX] application that can be printed with JSX syntax. *)
 type element = {
   tag : string;
   tag_loc : Location.t;
   props : (arg_label * expression) list;
   children_loc : Location.t;
-  children : expression list;
+  children : jsx_children;
   loc : Location.t;
       (** Location of the [@JSX] attribute, which spans the whole element. *)
 }
@@ -95,10 +98,11 @@ type element = {
 (** Classify a [@JSX] application. JSX syntax can only express applications
     of the exact shape produced by [make_jsx_element]: an identifier tag
     applied to one unlabelled [()] argument, one [~children] argument that
-    is a list literal, and labelled or optional props. Hand-written [@JSX]
-    applications may have any other shape (see
-    ocaml-mlx/ocamlformat-mlx#12), in which case [None] is returned and the
-    application must be printed as a regular application. *)
+    is a list literal or any other expression (a children spread), and
+    labelled or optional props. Hand-written [@JSX] applications may have
+    any other shape (see ocaml-mlx/ocamlformat-mlx#12), in which case
+    [None] is returned and the application must be printed as a regular
+    application. *)
 let classify_element ~attrs e0 args =
   let tag =
     let rec ident_of = function
@@ -134,19 +138,21 @@ let classify_element ~attrs e0 args =
         | ( Labelled { txt = "children"; _ },
             { pexp_desc = Pexp_list es; pexp_attributes = []; pexp_loc; _ } )
           ->
-          (units, (pexp_loc, es) :: children, props)
+          (units, (pexp_loc, Children es) :: children, props)
         | ( Labelled { txt = "children"; _ },
             { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None);
               pexp_attributes = [];
               pexp_loc;
               _ } ) ->
-          (units, (pexp_loc, []) :: children, props)
+          (units, (pexp_loc, Children []) :: children, props)
+        | ( Labelled { txt = "children"; _ }, e ) ->
+          (units, (e.pexp_loc, Spread e) :: children, props)
         | arg -> (units, children, arg :: props))
       args ([], [], [])
   in
   let is_prop = function
     | Labelled { txt = "children"; _ }, _ ->
-      false (* punned or not a list literal *)
+      false (* always classified above, never a plain prop *)
     | (Labelled _ | Optional _), _ -> true
     | Nolabel, _ -> false
   in
