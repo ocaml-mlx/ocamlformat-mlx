@@ -777,10 +777,7 @@ rule token = parse
   | '=' symbolchar_no_prefix * as op
             { INFIXOP0 op }
   | ">" symbolchar_no_less * as op
-            { (* Operators starting with ">..." are reserved for JSX
-                 children spread (`<Foo> ...expr </Foo>`), so the dialect
-                 disallows them: backtrack to just after the "greater" and
-                 let "..." lex separately as DOTDOTDOT. *)
+            { (* ops starting with ">..." are reserved for children spread, ">" is given back so "..." lexes separately *)
               if String.length op >= 4
                  && op.[1] = '.' && op.[2] = '.' && op.[3] = '.'
               then begin

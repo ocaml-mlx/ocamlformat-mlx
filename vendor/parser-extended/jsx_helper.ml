@@ -81,9 +81,7 @@ let make_jsx_element ~raise ~loc:_ ~tag ~end_tag ~props ~children () =
   let props = (Labelled {txt="children"; loc=children.pexp_loc}, children) :: props in
   Pexp_apply (tag, (Nolabel, unit) :: props)
 
-(** The children of a JSX element: either the usual list of children
-    (printed as juxtaposed [simple_expr]s), or a single spread child
-    (`<Foo> ...expr </Foo>`, printed as ["..." ^ expr]). *)
+(** The children of a JSX element: a list of children, or a single spread child (`<Foo> ...expr </Foo>`). *)
 type jsx_children = Children of expression list | Spread of expression
 
 (** A [@JSX] application that can be printed with JSX syntax. *)
@@ -100,11 +98,10 @@ type element = {
 (** Classify a [@JSX] application. JSX syntax can only express applications
     of the exact shape produced by [make_jsx_element]: an identifier tag
     applied to one unlabelled [()] argument, one [~children] argument that
-    is either a list literal (printed as juxtaposed children) or any other
-    expression (printed as a children spread, `...expr`), and labelled or
-    optional props. Hand-written [@JSX] applications may have any other
-    shape (see ocaml-mlx/ocamlformat-mlx#12), in which case [None] is
-    returned and the application must be printed as a regular
+    is a list literal or any other expression (a children spread), and
+    labelled or optional props. Hand-written [@JSX] applications may have
+    any other shape (see ocaml-mlx/ocamlformat-mlx#12), in which case
+    [None] is returned and the application must be printed as a regular
     application. *)
 let classify_element ~attrs e0 args =
   let tag =
@@ -149,8 +146,6 @@ let classify_element ~attrs e0 args =
               _ } ) ->
           (units, (pexp_loc, Children []) :: children, props)
         | ( Labelled { txt = "children"; _ }, e ) ->
-          (* A non-list, non-empty-list [~children] expression is a JSX
-             children spread (`<Foo> ...expr </Foo>`). *)
           (units, (e.pexp_loc, Spread e) :: children, props)
         | arg -> (units, children, arg :: props))
       args ([], [], [])

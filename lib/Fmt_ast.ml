@@ -2353,11 +2353,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
           hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
         | Jsx.Spread e ->
           let head = hvbox 2 (start_tag $ props $ str ">") in
-          (* Comments before [e] are extracted here so they print before
-             the "..." spread marker (matching their source position and
-             the placement used for plain children), rather than between
-             "..." and [e] where [fmt_expression]'s own leading-comment
-             handling would otherwise put them. *)
+          (* leading comments are consumed before emitting "..." so they print in front of it *)
           let cmts_before =
             if Cmts.has_before c.cmts e.pexp_loc then
               Cmts.fmt_before c e.pexp_loc
