@@ -395,3 +395,28 @@ regular applications:
   let _ = App.createElement ~children:[] ~children:[] () [@JSX]
   $ echo 'let _ = (((get_component ()) ~children:[] ()) [@JSX])' | fmt
   let _ = (get_component ()) ~children:[] () [@JSX]
+
+Object types whose opening "<" is not followed by a space (the lexer would
+otherwise read "<m" as the start of a JSX element; a type context can never
+contain JSX, so this is unambiguous):
+  $ echo 'let f (x : <m : int>) = x#m' | fmt
+  let f (x : < m : int >) = x#m
+  $ echo 'let f (x : <m : int; n : float>) = x#m' | fmt
+  let f (x : < m : int ; n : float >) = x#m
+  $ echo "let f (x : <m : 'a. 'a -> 'a>) = x#m" | fmt
+  let f (x : < m : 'a. 'a -> 'a >) = x#m
+  $ echo 'let f : <m : int> -> unit = fun _ -> ()' | fmt
+  let f : < m : int > -> unit = fun _ -> ()
+
+Regression guards: the spaced form, "< .. >", and the JSX expression form
+must keep working:
+  $ echo 'let f (x : < m : int >) = x#m' | fmt
+  let f (x : < m : int >) = x#m
+  $ echo 'let f (x : < .. >) = x' | fmt
+  let f (x : < .. >) = x
+  $ echo 'let f = <m />' | fmt
+  let f = <m />
+
+Idempotency check:
+  $ echo 'let f (x : <m : int>) = x#m' | fmt | fmt
+  let f (x : < m : int >) = x#m

@@ -15,6 +15,15 @@ profile. This started with version 0.26.0.
   single object-override closer token, instead of giving the `>` back to
   close the JSX tag.
 
+- Fix object types whose opening `<` is not followed by a space before
+  the first method name (e.g. `<m : int>`), which previously failed to
+  parse because the lexer read `<m` as the start of a JSX element rather
+  than as `<` followed by the object type's first method name. Since a
+  type context can never contain JSX, this fused token is now
+  unambiguously reinterpreted as the object type's opening `<` plus its
+  first label. The already-working spaced form `< m : int >` is
+  unaffected.
+
 ## 0.29.0
 
 ### Highlight
