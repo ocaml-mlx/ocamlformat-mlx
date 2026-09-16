@@ -290,11 +290,7 @@ JSX with infix operators:
   $ echo 'let _ = <Big>(<Lola />)</Big>' | fmt
   let _ = <Big><Lola /></Big>
 
-JSX element closed directly before "|]" inside an array literal, and
-before "}" inside a record/braced expression (regression test for the
-lexer treating ">|]" as the ">|" operator followed by "]", and ">}" as a
-single GREATERRBRACE token, instead of giving the ">" back to close the
-JSX tag):
+JSX element closed directly before "|]" in an array literal, or before "}" in a record/braced expression:
   $ echo 'let _ = [|<div>aa</div>|]' | fmt
   let _ = [| <div>aa</div> |]
   $ echo 'let _ = [|<div>aa</div>; <div>bb</div>|]' | fmt
@@ -309,9 +305,7 @@ JSX tag):
   $ echo 'let r = {r with x = <div>a</div>}' | fmt
   let r = { r with x = <div>a</div> }
 
-Object override still parses and formats stably, both spaced and unspaced,
-since the grammar now closes `{< ... >}` with two tokens (GREATER RBRACE)
-instead of the single GREATERRBRACE token:
+Object override still parses and formats stably, both spaced and unspaced:
   $ echo 'let _ = object val x = 1 method m = {< x = 2 >} end' | fmt
   let _ =
     object
@@ -325,11 +319,7 @@ instead of the single GREATERRBRACE token:
       method m = {<x = 2>}
     end
 
-Splitting ">}" into GREATER RBRACE means the final GREATER of an override
-field ending in an unparenthesized comparison is grammatically
-indistinguishable from a continued infix ">", both right before the closer
-and elsewhere in the field list; the printer keeps such fields parenthesized
-so the output still re-parses:
+An override field ending in an unparenthesized ">" comparison stays parenthesized so it re-parses:
   $ echo 'let _ = object val x = true method m = {< x = (1 > 2) >} end' | fmt
   let _ =
     object
@@ -344,9 +334,7 @@ so the output still re-parses:
       method m = {<x = (1 > 2); y = 5>}
     end
 
-Operator sanity: only the exact sequences ">|]" and ">}" are special-cased,
-so ">|" still lexes as an ordinary operator everywhere else, including
-right before a closing "|]" that isn't immediately preceded by ">":
+">|" still lexes as an ordinary operator everywhere else:
   $ echo 'let (>|) a b = a
   > let _ = 1>|2' | fmt
   let ( >| ) a b = a
@@ -396,9 +384,7 @@ regular applications:
   $ echo 'let _ = (((get_component ()) ~children:[] ()) [@JSX])' | fmt
   let _ = (get_component ()) ~children:[] () [@JSX]
 
-Object types whose opening "<" is not followed by a space (the lexer would
-otherwise read "<m" as the start of a JSX element; a type context can never
-contain JSX, so this is unambiguous):
+Object types whose opening "<" is not followed by a space:
   $ echo 'let f (x : <m : int>) = x#m' | fmt
   let f (x : < m : int >) = x#m
   $ echo 'let f (x : <m : int; n : float>) = x#m' | fmt
@@ -408,8 +394,7 @@ contain JSX, so this is unambiguous):
   $ echo 'let f : <m : int> -> unit = fun _ -> ()' | fmt
   let f : < m : int > -> unit = fun _ -> ()
 
-Regression guards: the spaced form, "< .. >", and the JSX expression form
-must keep working:
+Regression guards: the spaced form, "< .. >", and the JSX expression form must keep working:
   $ echo 'let f (x : < m : int >) = x#m' | fmt
   let f (x : < m : int >) = x#m
   $ echo 'let f (x : < .. >) = x' | fmt

@@ -2990,14 +2990,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                  pcstr_fields
              $ fmt_atrs ) )
   | Pexp_override l -> (
-      (* The object-override closer is now printed as two tokens, [>] then
-         [}] (mlx JSX support requires the lexer to be able to give the [>]
-         back to close a JSX tag directly before [}]). Because the grammar
-         shares LALR states across every field's value and the closer's
-         trailing [>], a field whose value is an unparenthesized top-level
-         [>] comparison is grammatically ambiguous with the closer -
-         wherever that field sits in the list, not only when it is last;
-         force parens around such a value so the printed output re-parses. *)
+      (* a bare [>] comparison in an override field is ambiguous with the closer, so force parens *)
       let is_bare_greater_comparison f =
         match f.pexp_desc with
         | Pexp_infix ({txt= ">"; _}, _, _) -> true

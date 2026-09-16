@@ -739,11 +739,7 @@ rule token = parse
   | "/>" { SLASHGREATER }
   | "}"  { RBRACE }
   | ">}"
-      { (* `>}` closes a JSX element directly inside a record/braced
-           expression (`{x = <div/>}`): give the ">" back to close the tag
-           and let "}" lex separately as RBRACE. Object override
-           (`{< ... >}`) still parses because the grammar now closes it
-           with GREATER RBRACE instead of the single GREATERRBRACE token. *)
+      { (* the dialect gives ">" back so the closing "}" lexes separately as RBRACE *)
         lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
         let lex_start_p = lexbuf.lex_start_p in
         lexbuf.lex_curr_p <-
@@ -751,11 +747,7 @@ rule token = parse
         GREATER
       }
   | ">|]"
-      { (* `>|]` closes a JSX element directly inside an array literal
-           (`[|<div/>|]`): give the ">" back to close the tag and let "|]"
-           lex separately as BARRBRACKET. An operator like ">|" can never be
-           legally followed by "]" without parentheses, so nothing legal is
-           stolen from the operator grammar. *)
+      { (* the dialect gives ">" back so the closing "|]" lexes separately as BARRBRACKET *)
         lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
         let lex_start_p = lexbuf.lex_start_p in
         lexbuf.lex_curr_p <-

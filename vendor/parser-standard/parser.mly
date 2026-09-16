@@ -3904,11 +3904,7 @@ object_type:
         { let (f, c) = meth_list in Ptyp_object (f, c) }
     | LESS GREATER
         { Ptyp_object ([], Closed) }
-    (* [mlx]: a type context can never contain JSX, so when the lexer has
-       fused "<" with the first method name into a single JSX_LIDENT token
-       (e.g. because there is no space, as in [<m : int>]), we can
-       unambiguously reinterpret it as the opening [<] of an object type
-       followed by its first label. *)
+    (* [mlx]: a type context can never contain JSX, so a lexer-fused "<" + first-label token can be reinterpreted as the opening "<" of an object type *)
     | meth_list = meth_list_jsx GREATER
         { let (f, c) = meth_list in Ptyp_object (f, c) }
   )
@@ -4025,13 +4021,7 @@ meth_list:
   | DOTDOT
       { [], Open }
 ;
-(* [mlx]: same as [meth_list], but for use right after the lexer has fused
-   "<" with the first method's name into a single JSX_LIDENT token; the
-   first field is therefore parsed from that fused token (see
-   [jsx_first_label]) instead of from a separately-lexed [label]. Only the
-   field productions are needed here (not [inherit_field] or [DOTDOT]):
-   those alternatives do not begin with a bare label and so cannot follow a
-   fused "<" + name token. *)
+(* [mlx]: same as [meth_list], but starting from a fused "<" + first-label JSX_LIDENT token instead of a separately-lexed [label] *)
 meth_list_jsx:
     head = field_semi(jsx_first_label) tail = meth_list
       { let (f, c) = tail in (head :: f, c) }
@@ -4057,12 +4047,7 @@ meth_list_jsx:
       let attrs = add_info_attrs info ($4 @ $6) in
       Of.tag ~loc:(make_loc $sloc) ~attrs $1 $3 }
 ;
-(* [mlx]: the fused "<" + first-method-name token, reinterpreted as an
-   object-type label. Its payload (from the lexer rule
-   ["<" (lowercase identchar * as name)]) is already just the name, without
-   the leading "<"; we use the token's own location as-is (spanning the
-   "<" too), matching how [jsx_longident] already treats JSX_LIDENT/
-   JSX_UIDENT elsewhere in this grammar. *)
+(* [mlx]: the fused "<" + first-method-name JSX_LIDENT token, reinterpreted as an object-type label *)
 %inline jsx_first_label:
   name = JSX_LIDENT { mkrhs name $sloc }
 ;
