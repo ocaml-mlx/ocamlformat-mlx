@@ -789,7 +789,7 @@ let mk_directive ~loc name arg =
 %token FUNCTOR                "functor"
 %token GREATER                ">"
 %token SLASHGREATER           "/>"
-%token GREATERRBRACE          ">}"
+%token GREATER_BEFORE_RBRACE   "> (before })"
 %token GREATERRBRACKET        ">]"
 %token IF                     "if"
 %token IN                     "in"
@@ -2625,17 +2625,17 @@ simple_expr:
       { Pexp_apply($1, [Nolabel,$2]) }
   | op(BANG {"!"}) simple_expr
       { Pexp_apply($1, [Nolabel,$2]) }
-  | LBRACELESS object_expr_content GREATER RBRACE
+  | LBRACELESS object_expr_content GREATER_BEFORE_RBRACE RBRACE
       { Pexp_override $2 }
   | LBRACELESS object_expr_content error
       { unclosed "{<" $loc($1) ">}" $loc($3) }
-  | LBRACELESS GREATER RBRACE
+  | LBRACELESS GREATER_BEFORE_RBRACE RBRACE
       { Pexp_override [] }
   | simple_expr DOT mkrhs(label_longident)
       { Pexp_field($1, $3) }
   | od=open_dot_declaration DOT LPAREN seq_expr RPAREN
       { Pexp_struct_item(Str.open_ od, $4) }
-  | od=open_dot_declaration DOT LBRACELESS object_expr_content GREATER RBRACE
+  | od=open_dot_declaration DOT LBRACELESS object_expr_content GREATER_BEFORE_RBRACE RBRACE
       { (* TODO: review the location of Pexp_override *)
         Pexp_struct_item(Str.open_ od, mkexp ~loc:$sloc (Pexp_override $4)) }
   | mod_longident DOT LBRACELESS object_expr_content error
@@ -2707,6 +2707,11 @@ simple_expr:
     LPAREN MODULE ext_attributes module_expr COLON error
       { unclosed "(" $loc($3) ")" $loc($8) }
 ;
+(* GREATER_BEFORE_RBRACE consumes only ">"; the brace belongs to the enclosing production. *)
+%inline closing_greater:
+  | GREATER { () }
+  | GREATER_BEFORE_RBRACE { () }
+;
 jsx_element:
     tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop) SLASHGREATER {
       let children =
@@ -2715,7 +2720,7 @@ jsx_element:
       in
       Jsx_helper.make_jsx_element () ~raise ~loc:$loc(tag) ~tag ~end_tag:None ~props ~children }
   | tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop)
-    GREATER children=llist(simple_expr) end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=GREATER {
+    GREATER children=llist(simple_expr) end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=closing_greater {
       let children =
         let children, loc = mktailexp $loc(children) children in
         mkexp ~loc children
@@ -2725,7 +2730,7 @@ jsx_element:
         ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children
     }
   | tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop)
-    GREATER DOTDOTDOT children=simple_expr end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=GREATER {
+    GREATER DOTDOTDOT children=simple_expr end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=closing_greater {
       let _ = end_tag_ in
       Jsx_helper.make_jsx_element ()
         ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children
@@ -3907,12 +3912,12 @@ delimited_type_supporting_local_open:
 
 object_type:
   | mktyp(
-      LESS meth_list = meth_list GREATER
+      LESS meth_list = meth_list closing_greater
         { let (f, c) = meth_list in Ptyp_object (f, c) }
-    | LESS GREATER
+    | LESS closing_greater
         { Ptyp_object ([], Closed) }
     (* [mlx]: a type context can never contain JSX, so a lexer-fused "<" + first-label token can be reinterpreted as the opening "<" of an object type *)
-    | meth_list = meth_list_jsx GREATER
+    | meth_list = meth_list_jsx closing_greater
         { let (f, c) = meth_list in Ptyp_object (f, c) }
   )
   { $1 }

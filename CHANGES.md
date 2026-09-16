@@ -15,6 +15,14 @@ profile. This started with version 0.26.0.
 
 ### Fixed
 
+- Restore parsing and formatting of unparenthesized object-override field
+  expressions, including comparisons, boolean operators, conditionals, and
+  local bindings, while preserving JSX elements closed directly before `}`.
+
+- Preserve comments on the unit argument of hand-written `[@JSX]`
+  applications by retaining application syntax, including when nested in JSX
+  children, spreads, or props.
+
 - Fix JSX elements closed directly before `|]` in array literals (e.g.
   `[|<div>aa</div>|]`) and before `}` in record/braced expressions (e.g.
   `{x = <div>a</div>}`), which previously failed to parse because the
@@ -1964,4 +1972,3 @@ profile. This started with version 0.26.0.
 ## 0.1 (2017-10-19)
 
 - Initial release.
-
