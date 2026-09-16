@@ -319,19 +319,19 @@ Object override still parses and formats stably, both spaced and unspaced:
       method m = {<x = 2>}
     end
 
-Override comparisons can be printed without unnecessary parentheses:
+An override field ending in an unparenthesized ">" comparison stays parenthesized so it re-parses:
   $ echo 'let _ = object val x = true method m = {< x = (1 > 2) >} end' | fmt
   let _ =
     object
       val x = true
-      method m = {<x = 1 > 2>}
+      method m = {<x = (1 > 2)>}
     end
   $ echo 'let _ = object val x = true val y = 1 method m = {< x = (1 > 2); y = 5 >} end' | fmt
   let _ =
     object
       val x = true
       val y = 1
-      method m = {<x = 1 > 2; y = 5>}
+      method m = {<x = (1 > 2); y = 5>}
     end
 
 ">|" still lexes as an ordinary operator everywhere else:

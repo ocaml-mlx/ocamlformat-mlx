@@ -748,13 +748,13 @@ rule token = parse
   | ">"  { GREATER }
   | "/>" { SLASHGREATER }
   | "}"  { RBRACE }
-  | ">" (blank | newline)* "}"
-      { (* Keep the closer distinct from infix ">", but leave "}" for the enclosing record, object override, or indexing expression. *)
+  | ">}"
+      { (* the dialect gives ">" back so the closing "}" lexes separately as RBRACE *)
         lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
         let lex_start_p = lexbuf.lex_start_p in
         lexbuf.lex_curr_p <-
           { lex_start_p with pos_cnum = lex_start_p.pos_cnum + 1 };
-        GREATERRBRACE
+        GREATER
       }
   | ">|]"
       { (* the dialect gives ">" back so the closing "|]" lexes separately as BARRBRACKET *)

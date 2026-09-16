@@ -88,7 +88,6 @@ type jsx_children = Children of expression list | Spread of expression
 type element = {
   tag : string;
   tag_loc : Location.t;
-  unit_loc : Location.t;
   props : (arg_label * expression) list;
   children_loc : Location.t;
   children : jsx_children;
@@ -134,9 +133,8 @@ let classify_element ~attrs e0 args =
         | ( Nolabel,
             { pexp_desc = Pexp_construct ({ txt = Lident "()"; _ }, None);
               pexp_attributes = [];
-              pexp_loc;
               _ } ) ->
-          (pexp_loc :: units, children, props)
+          (() :: units, children, props)
         | ( Labelled { txt = "children"; _ },
             { pexp_desc = Pexp_list es; pexp_attributes = []; pexp_loc; _ } )
           ->
@@ -161,8 +159,8 @@ let classify_element ~attrs e0 args =
   match (attrs, tag, units, children) with
   | ( [ { attr_name = { txt = "JSX"; _ }; attr_payload = PStr []; attr_loc } ],
       Some (tag, tag_loc),
-      [ unit_loc ],
+      [ () ],
       [ (children_loc, children) ] )
     when List.for_all is_prop props ->
-    Some { tag; tag_loc; unit_loc; props; children_loc; children; loc = attr_loc }
+    Some { tag; tag_loc; props; children_loc; children; loc = attr_loc }
   | _ -> None
