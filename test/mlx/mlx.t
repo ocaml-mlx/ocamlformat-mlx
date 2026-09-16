@@ -290,6 +290,60 @@ JSX with infix operators:
   $ echo 'let _ = <Big>(<Lola />)</Big>' | fmt
   let _ = <Big><Lola /></Big>
 
+JSX element closed directly before "|]" in an array literal, or before "}" in a record/braced expression:
+  $ echo 'let _ = [|<div>aa</div>|]' | fmt
+  let _ = [| <div>aa</div> |]
+  $ echo 'let _ = [|<div>aa</div>; <div>bb</div>|]' | fmt
+  let _ = [| <div>aa</div>; <div>bb</div> |]
+  $ echo 'let _ = [<div>aa</div>]' | fmt
+  let _ = [ <div>aa</div> ]
+
+  $ echo 'let _ = {x = <div>a</div>}' | fmt
+  let _ = { x = <div>a</div> }
+  $ echo 'let _ = {x = <div>a</div>; y = 1}' | fmt
+  let _ = { x = <div>a</div>; y = 1 }
+  $ echo 'let r = {r with x = <div>a</div>}' | fmt
+  let r = { r with x = <div>a</div> }
+
+Object override still parses and formats stably, both spaced and unspaced:
+  $ echo 'let _ = object val x = 1 method m = {< x = 2 >} end' | fmt
+  let _ =
+    object
+      val x = 1
+      method m = {<x = 2>}
+    end
+  $ echo 'let _ = object val x = 1 method m = {<x = 2>} end' | fmt
+  let _ =
+    object
+      val x = 1
+      method m = {<x = 2>}
+    end
+
+An override field ending in an unparenthesized ">" comparison stays parenthesized so it re-parses:
+  $ echo 'let _ = object val x = true method m = {< x = (1 > 2) >} end' | fmt
+  let _ =
+    object
+      val x = true
+      method m = {<x = (1 > 2)>}
+    end
+  $ echo 'let _ = object val x = true val y = 1 method m = {< x = (1 > 2); y = 5 >} end' | fmt
+  let _ =
+    object
+      val x = true
+      val y = 1
+      method m = {<x = (1 > 2); y = 5>}
+    end
+
+">|" still lexes as an ordinary operator everywhere else:
+  $ echo 'let (>|) a b = a
+  > let _ = 1>|2' | fmt
+  let ( >| ) a b = a
+  let _ = 1 >| 2
+  $ echo 'let (>|) a b = a
+  > let _ = [|1>|2|]' | fmt
+  let ( >| ) a b = a
+  let _ = [| 1 >| 2 |]
+
 Raw identifiers in JSX:
   $ echo 'let _ = <\#lazy />' | fmt
   let _ = <\#lazy />
@@ -329,3 +383,25 @@ regular applications:
   let _ = App.createElement ~children:[] ~children:[] () [@JSX]
   $ echo 'let _ = (((get_component ()) ~children:[] ()) [@JSX])' | fmt
   let _ = (get_component ()) ~children:[] () [@JSX]
+
+Object types whose opening "<" is not followed by a space:
+  $ echo 'let f (x : <m : int>) = x#m' | fmt
+  let f (x : < m : int >) = x#m
+  $ echo 'let f (x : <m : int; n : float>) = x#m' | fmt
+  let f (x : < m : int ; n : float >) = x#m
+  $ echo "let f (x : <m : 'a. 'a -> 'a>) = x#m" | fmt
+  let f (x : < m : 'a. 'a -> 'a >) = x#m
+  $ echo 'let f : <m : int> -> unit = fun _ -> ()' | fmt
+  let f : < m : int > -> unit = fun _ -> ()
+
+Regression guards: the spaced form, "< .. >", and the JSX expression form must keep working:
+  $ echo 'let f (x : < m : int >) = x#m' | fmt
+  let f (x : < m : int >) = x#m
+  $ echo 'let f (x : < .. >) = x' | fmt
+  let f (x : < .. >) = x
+  $ echo 'let f = <m />' | fmt
+  let f = <m />
+
+Idempotency check:
+  $ echo 'let f (x : <m : int>) = x#m' | fmt | fmt
+  let f (x : < m : int >) = x#m

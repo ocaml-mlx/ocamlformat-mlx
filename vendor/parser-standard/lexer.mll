@@ -738,7 +738,22 @@ rule token = parse
   | ">"  { GREATER }
   | "/>" { SLASHGREATER }
   | "}"  { RBRACE }
-  | ">}" { GREATERRBRACE }
+  | ">}"
+      { (* the dialect gives ">" back so the closing "}" lexes separately as RBRACE *)
+        lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
+        let lex_start_p = lexbuf.lex_start_p in
+        lexbuf.lex_curr_p <-
+          { lex_start_p with pos_cnum = lex_start_p.pos_cnum + 1 };
+        GREATER
+      }
+  | ">|]"
+      { (* the dialect gives ">" back so the closing "|]" lexes separately as BARRBRACKET *)
+        lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
+        let lex_start_p = lexbuf.lex_start_p in
+        lexbuf.lex_curr_p <-
+          { lex_start_p with pos_cnum = lex_start_p.pos_cnum + 1 };
+        GREATER
+      }
   | "[@" { LBRACKETAT }
   | "[@@"  { LBRACKETATAT }
   | "[@@@" { LBRACKETATATAT }

@@ -2655,17 +2655,17 @@ simple_expr:
       { Pexp_prefix($1, $2) }
   | op(BANG {"!"}) simple_expr
       { Pexp_prefix($1, $2) }
-  | LBRACELESS object_expr_content GREATERRBRACE
+  | LBRACELESS object_expr_content GREATER RBRACE
       { Pexp_override $2 }
   | LBRACELESS object_expr_content error
       { unclosed "{<" $loc($1) ">}" $loc($3) }
-  | LBRACELESS GREATERRBRACE
+  | LBRACELESS GREATER RBRACE
       { Pexp_override [] }
   | simple_expr DOT mkrhs(label_longident)
       { Pexp_field($1, $3) }
   | od=open_dot_declaration DOT LPAREN seq_expr RPAREN
       { Pexp_open(od, $4) }
-  | od=open_dot_declaration DOT LBRACELESS object_expr_content GREATERRBRACE
+  | od=open_dot_declaration DOT LBRACELESS object_expr_content GREATER RBRACE
       { (* TODO: review the location of Pexp_override *)
         Pexp_open(od, mkexp ~loc:$sloc (Pexp_override $4)) }
   | mod_longident DOT LBRACELESS object_expr_content error
@@ -3949,6 +3949,9 @@ object_type:
         { let (f, c) = meth_list in Ptyp_object (f, c) }
     | LESS GREATER
         { Ptyp_object ([], OClosed) }
+    (* [mlx]: a type context can never contain JSX, so a lexer-fused "<" + first-label token can be reinterpreted as the opening "<" of an object type *)
+    | meth_list = meth_list_jsx GREATER
+        { let (f, c) = meth_list in Ptyp_object (f, c) }
   )
   { $1 }
 ;
@@ -4051,27 +4054,36 @@ opt_ampersand:
 ;
 (* A method list (in an object type). *)
 meth_list:
-    head = field_semi         tail = meth_list
+    head = field_semi(mkrhs(label)) tail = meth_list
   | head = inherit_field SEMI tail = meth_list
       { let (f, c) = tail in (head :: f, c) }
-  | head = field_semi
+  | head = field_semi(mkrhs(label))
   | head = inherit_field SEMI
       { [head], OClosed }
-  | head = field
+  | head = field(mkrhs(label))
   | head = inherit_field
       { [head], OClosed }
   | DOTDOT
       { [], OOpen (make_loc $sloc) }
 ;
-%inline field:
-  mkrhs(label) COLON poly_type_no_attr attributes
+(* [mlx]: same as [meth_list], but starting from a fused "<" + first-label JSX_LIDENT token instead of a separately-lexed [label] *)
+meth_list_jsx:
+    head = field_semi(jsx_first_label) tail = meth_list
+      { let (f, c) = tail in (head :: f, c) }
+  | head = field_semi(jsx_first_label)
+      { [head], OClosed }
+  | head = field(jsx_first_label)
+      { [head], OClosed }
+;
+%inline field(label):
+  label COLON poly_type_no_attr attributes
     { let info = symbol_info $endpos in
       let attrs = add_info_attrs info $4 in
       Of.tag ~loc:(make_loc $sloc) ~attrs $1 $3 }
 ;
 
-%inline field_semi:
-  mkrhs(label) COLON poly_type_no_attr attributes SEMI attributes
+%inline field_semi(label):
+  label COLON poly_type_no_attr attributes SEMI attributes
     { let info =
         match rhs_info $endpos($4) with
         | Some _ as info_before_semi -> info_before_semi
@@ -4079,6 +4091,10 @@ meth_list:
       in
       let attrs = add_info_attrs info ($4 @ $6) in
       Of.tag ~loc:(make_loc $sloc) ~attrs $1 $3 }
+;
+(* [mlx]: the fused "<" + first-method-name JSX_LIDENT token, reinterpreted as an object-type label *)
+%inline jsx_first_label:
+  name = JSX_LIDENT { mkrhs name $sloc }
 ;
 
 %inline inherit_field:

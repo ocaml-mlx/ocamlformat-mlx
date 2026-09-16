@@ -2990,6 +2990,12 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                  pcstr_fields
              $ fmt_atrs ) )
   | Pexp_override l -> (
+      (* a bare [>] comparison in an override field is ambiguous with the closer, so force parens *)
+      let is_bare_greater_comparison f =
+        match f.pexp_desc with
+        | Pexp_infix ({txt= ">"; _}, _, _) -> true
+        | _ -> false
+      in
       let fmt_field ({txt; loc}, f) =
         let eol = break 1 3 in
         let txt = Longident.lident txt in
@@ -2999,9 +3005,11 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                && List.is_empty f.pexp_attributes ->
             Cmts.fmt c ~eol loc @@ fmt_longident c txt'
         | _ ->
+            let force_parens = is_bare_greater_comparison f in
             Cmts.fmt c ~eol loc @@ fmt_longident c txt
             $ str " = "
-            $ fmt_expression c (sub_exp ~ctx f)
+            $ Params.parens_if force_parens c.conf
+                (fmt_expression c (sub_exp ~ctx f))
       in
       match l with
       | [] ->
