@@ -780,6 +780,7 @@ let mk_directive ~loc name arg =
 %token DONE                   "done"
 %token DOT                    "."
 %token DOTDOT                 ".."
+%token DOTDOTDOT              "..."
 %token DOWNTO                 "downto"
 %token EFFECT                 "effect"
 %token ELSE                   "else"
@@ -2736,6 +2737,12 @@ jsx_element:
   | tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop)
     GREATER children=llist(simple_expr) end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=GREATER {
       let children = mkexp ~loc:$loc(children) (Pexp_list children) in
+      let _ = end_tag_ in
+      Jsx_helper.make_jsx_element ()
+        ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children
+    }
+  | tag=jsx_longident(JSX_UIDENT, JSX_LIDENT) props=llist(jsx_prop)
+    GREATER DOTDOTDOT children=simple_expr end_tag=jsx_longident(JSX_UIDENT_E, JSX_LIDENT_E) end_tag_=GREATER {
       let _ = end_tag_ in
       Jsx_helper.make_jsx_element ()
         ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children

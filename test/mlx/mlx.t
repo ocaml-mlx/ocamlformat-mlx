@@ -369,10 +369,6 @@ expressible (ocaml-mlx/ocamlformat-mlx#12):
 
 Hand-written [@JSX] applications that JSX syntax cannot express are kept as
 regular applications:
-  $ echo 'let _ = ((App.createElement ~children ()) [@JSX])' | fmt
-  let _ = App.createElement ~children () [@JSX]
-  $ echo 'let _ = ((App.createElement ~children:(make_children ()) ()) [@JSX])' | fmt
-  let _ = App.createElement ~children:(make_children ()) () [@JSX]
   $ echo 'let _ = ((App.createElement ~children:[]) [@JSX])' | fmt
   let _ = App.createElement ~children:[] [@JSX]
   $ echo 'let _ = ((App.createElement ()) [@JSX])' | fmt
@@ -405,3 +401,98 @@ Regression guards: the spaced form, "< .. >", and the JSX expression form must k
 Idempotency check:
   $ echo 'let f (x : <m : int>) = x#m' | fmt | fmt
   let f (x : < m : int >) = x#m
+
+JSX children spread (`<Foo> ...expr </Foo>` passes [expr] directly as
+[~children:expr], without list wrapping):
+  $ echo 'let _ = <div> ...children </div>' | fmt
+  let _ = <div>...children</div>
+  $ echo 'let _ = <Foo>...(List.map f xs)</Foo>' | fmt
+  let _ = <Foo>...(List.map f xs)</Foo>
+  $ echo 'let _ = <Foo> ...xs </Foo>' | fmt
+  let _ = <Foo>...xs</Foo>
+
+A spread of a list literal parses to the very same AST as plain
+juxtaposed children ([~children:[a; b]]), so it is normalized to the
+plain children form when reformatted:
+  $ echo 'let _ = <div> ...[text "title"] </div>' | fmt
+  let _ = <div>(text "title")</div>
+  $ echo 'let _ = <div> ...[a; b] </div>' | fmt
+  let _ = <div>a b</div>
+  $ echo 'let _ = <div> ...[] </div>' | fmt
+  let _ = <div />
+
+Idempotency (formatting the formatted output changes nothing):
+  $ echo 'let _ = <div>...children</div>' | fmt | fmt
+  let _ = <div>...children</div>
+  $ echo 'let _ = <Foo>...(List.map f xs)</Foo>' | fmt | fmt
+  let _ = <Foo>...(List.map f xs)</Foo>
+
+`...` followed by a nested JSX element:
+  $ echo 'let _ = <div> ...(<span>x</span>) </div>' | fmt
+  let _ = <div>...<span>x</span></div>
+
+Hand-written [@JSX] applications whose [~children] is not a list literal
+are now expressible as a spread and are canonicalized to JSX syntax:
+  $ echo 'let _ = ((App.createElement ~children ()) [@JSX])' | fmt
+  let _ = <App>...children</App>
+  $ echo 'let _ = ((App.createElement ~children:(make_children ()) ()) [@JSX])' | fmt
+  let _ = <App>...(make_children ())</App>
+
+`>...`-prefixed infix operators are reserved for the spread syntax and are
+therefore illegal (the lexer backtracks so `...` lexes as the spread
+marker, but there is no grammar production combining a bare `>` with an
+expression outside of JSX, so this is a syntax error):
+  $ echo 'let _ = a >... b' | fmt
+  ocamlformat-mlx: ignoring "<standard input>" (syntax error)
+  File "<standard input>", line 1, characters 11-14:
+  1 | let _ = a >... b
+                 ^^^
+  Error: Syntax error
+  [1]
+
+Ordinary `>` comparisons inside a spread are unaffected:
+  $ echo 'let _ = <div> ...(a > b) </div>' | fmt
+  let _ = <div>...(a > b)</div>
+
+Comments around a children spread (ocaml-mlx/ocamlformat-mlx: "Fix dropped
+comments around JSX children and parenthesised elements"). A comment
+before the spread expression prints before the `...` marker, matching
+where a comment before plain children would print, rather than between
+`...` and the expression:
+  $ echo 'let _ = <div> (* before *) ...children </div>' | fmt
+  let _ = <div>(* before *) ...children</div>
+
+A comment after the spread expression prints after it, before the closing
+tag:
+  $ echo 'let _ = <div> ...children (* after *) </div>' | fmt
+  let _ = <div>...children (* after *)</div>
+
+A comment right at the start of the (parenthesised) spread expression:
+  $ echo 'let _ = <div> ...(* inner-before *)(List.map f xs) </div>' | fmt
+  let _ = <div>(* inner-before *) ...(List.map f xs)</div>
+  $ echo 'let _ = <div> ...( (* inside parens *) e ) </div>' | fmt
+  let _ = <div>(* inside parens *) ...e</div>
+
+A comment on its own line above the spread, in a multiline element,
+stays above the `...` marker rather than sharing its line:
+  $ printf 'let _ =\n  <div>\n    (* comment *)\n    ...children\n  </div>\n' | fmt
+  let _ =
+    <div>
+      (* comment *)
+      ...children
+    </div>
+
+A comment between the props and the spread attaches to the opening tag,
+same as it would for plain children:
+  $ echo 'let _ = <div a=1 (* c *) > ...xs </div>' | fmt
+  let _ = <div a=1 (* c *)>...xs</div>
+
+All of the above are idempotent:
+  $ echo 'let _ = <div>(* before *) ...children</div>' | fmt | fmt
+  let _ = <div>(* before *) ...children</div>
+  $ echo 'let _ = <div>...children (* after *)</div>' | fmt | fmt
+  let _ = <div>...children (* after *)</div>
+  $ echo 'let _ = <div>(* inner-before *) ...(List.map f xs)</div>' | fmt | fmt
+  let _ = <div>(* inner-before *) ...(List.map f xs)</div>
+  $ echo 'let _ = <div a=1 (* c *)>...xs</div>' | fmt | fmt
+  let _ = <div a=1 (* c *)>...xs</div>
