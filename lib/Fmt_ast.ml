@@ -64,16 +64,18 @@ module Jsx = Ocamlformat_parser_extended.Jsx_helper
 let classify_jsx_element c ~attrs e0 args =
   Jsx.classify_element ~attrs e0 args
   |> Option.filter ~f:(fun {Jsx.unit_loc; _} ->
-         (* JSX omits the unit argument, so keep applications that comment it. *)
-         not
-           (Cmts.has_before c.cmts unit_loc
-           || Cmts.has_within c.cmts unit_loc
-           || Cmts.has_after c.cmts unit_loc))
+      (* JSX omits the unit argument, so keep applications that comment
+         it. *)
+      not
+        ( Cmts.has_before c.cmts unit_loc
+        || Cmts.has_within c.cmts unit_loc
+        || Cmts.has_after c.cmts unit_loc ) )
 
 let is_jsx_element c e =
   match e.pexp_desc with
   | Pexp_apply (e0, args) ->
-      Option.is_some (classify_jsx_element c ~attrs:e.pexp_attributes e0 args)
+      Option.is_some
+        (classify_jsx_element c ~attrs:e.pexp_attributes e0 args)
   | _ -> false
 
 type block =
@@ -2313,31 +2315,49 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
              $ fmt_expression c ~box (sub_exp ~ctx e)
              $ fmt_atrs ) )
   | Pexp_apply (e0, e1N1) -> (
-      match classify_jsx_element c ~attrs:pexp_attributes e0 e1N1 with
-      | Some {Jsx.tag; tag_loc; props; children_loc; children; loc= jsx_loc; _} ->
+    match classify_jsx_element c ~attrs:pexp_attributes e0 e1N1 with
+    | Some
+        { Jsx.tag
+        ; tag_loc
+        ; props
+        ; children_loc
+        ; children
+        ; loc= jsx_loc
+        ; extra_attrs
+        ; _ } ->
         let start_tag = str ("<" ^ tag) $ Cmts.fmt_after c tag_loc in
         let end_tag = str ("</" ^ tag ^ ">") in
+        let fmt_extra_attrs = fmt_attributes c ~pre:Space extra_attrs in
         let props =
           match props with
           | [] -> noop
           | props ->
-            let fmt_labelled ?(prefix="") label e =
-              let flabel = str (Printf.sprintf "%s%s" prefix label.txt) in
-              match e.pexp_desc with
-              | Pexp_ident {txt=Lident id; loc=_} when String.equal id label.txt ->
-                flabel
-              | _ ->
-                if is_jsx_element c e then
-                  flabel $ str "=(" $ fmt_expression c (sub_exp ~ctx e) $ str ")"
-                else
-                  flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
-            in
-            let fmt_prop = function
-              | Nolabel, _ -> assert false (* excluded by classification *)
-              | Labelled label, e -> fmt_labelled label e
-              | Optional label, e -> fmt_labelled ~prefix:"?" label e
-            in
-            space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
+              let fmt_labelled ?(prefix = "") label e =
+                let flabel = str (Printf.sprintf "%s%s" prefix label.txt) in
+                match e.pexp_desc with
+                | Pexp_ident {txt= Lident id; loc= _}
+                  when String.equal id label.txt
+                       && (not (Cmts.has_before c.cmts e.pexp_loc))
+                       && (not (Cmts.has_within c.cmts e.pexp_loc))
+                       && not (Cmts.has_after c.cmts e.pexp_loc) ->
+                    (* Punning drops [e]'s own location from the printed
+                       output, so a comment attached there would be silently
+                       lost; fall back to the explicit [label=label] form so
+                       [fmt_expression] below prints it. *)
+                    flabel
+                | _ ->
+                    if is_jsx_element c e then
+                      flabel $ str "=("
+                      $ fmt_expression c (sub_exp ~ctx e)
+                      $ str ")"
+                    else flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
+              in
+              let fmt_prop = function
+                | Nolabel, _ -> assert false (* excluded by classification *)
+                | Labelled label, e -> fmt_labelled label e
+                | Optional label, e -> fmt_labelled ~prefix:"?" label e
+              in
+              space_break $ hvbox 0 (list props (break 1 0) fmt_prop)
         in
         (* Comments surrounding a parenthesised JSX element attach to the
            [@JSX] attribute's whole-element location ([jsx_loc]); emit them
@@ -2345,135 +2365,136 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
            a regular attribute. *)
         pro
         $ Cmts.fmt c jsx_loc
-        @@ begin match children with
-        | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->
-          hvbox 2 (start_tag $ props) $ space_break $ str "/>"
-        | Jsx.Children children ->
-          let head = hvbox 2 (start_tag $ props $ str ">") in
-          let children =
-            hvbox 0 (
-              list children (break 1 0)
-              (fun e ->
+          @@ begin match children with
+          | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->
+              hvbox 2 (start_tag $ props)
+              $ space_break $ str "/>" $ fmt_extra_attrs
+          | Jsx.Children children ->
+              let head = hvbox 2 (start_tag $ props $ str ">") in
+              let children =
+                hvbox 0
+                  ( list children (break 1 0) (fun e ->
+                        if is_jsx_element c e then
+                          fmt_expression c ~parens:false (sub_exp ~ctx e)
+                        else fmt_expression c (sub_exp ~ctx e) )
+                  $ Cmts.fmt_after c children_loc )
+              in
+              hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
+              $ fmt_extra_attrs
+          | Jsx.Spread e ->
+              let head = hvbox 2 (start_tag $ props $ str ">") in
+              (* leading comments are consumed before emitting "..." so they
+                 print in front of it *)
+              let cmts_before =
+                if Cmts.has_before c.cmts e.pexp_loc then
+                  Cmts.fmt_before c e.pexp_loc
+                else noop
+              in
+              let child_expr =
                 if is_jsx_element c e then
                   fmt_expression c ~parens:false (sub_exp ~ctx e)
-                else
-                  fmt_expression c (sub_exp ~ctx e))
-              $ Cmts.fmt_after c children_loc)
-          in
-          hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
-        | Jsx.Spread e ->
-          let head = hvbox 2 (start_tag $ props $ str ">") in
-          (* leading comments are consumed before emitting "..." so they print in front of it *)
-          let cmts_before =
-            if Cmts.has_before c.cmts e.pexp_loc then
-              Cmts.fmt_before c e.pexp_loc
-            else noop
-          in
-          let child_expr =
-            if is_jsx_element c e then
-              fmt_expression c ~parens:false (sub_exp ~ctx e)
-            else
-              fmt_expression c (sub_exp ~ctx e)
-          in
-          let child =
-            hvbox 0 (
-              cmts_before $ str "..." $ child_expr
-              $ Cmts.fmt_after c children_loc)
-          in
-          hvbox 2 (head $ break 0 0 $ child $ break 0 (-2) $ end_tag)
-        end
-      | None ->
-      let wrap =
-        if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2
-      in
-      let (lbl, last_arg), args_before =
-        match List.rev e1N1 with
-        | [] -> assert false
-        | hd :: tl -> (hd, List.rev tl)
-      in
-      let intro_epi, expr_epi =
-        (* [intro_epi] should be placed inside the inner most box but before
-           anything. [expr_epi] is placed in the outermost box, outside of
-           parenthesis. *)
-        let dock_fun_arg =
-          (* Do not dock the arguments when there's more than one. *)
-          Location.line_difference e0.pexp_loc last_arg.pexp_loc = 0
+                else fmt_expression c (sub_exp ~ctx e)
+              in
+              let child =
+                hvbox 0
+                  ( cmts_before $ str "..." $ child_expr
+                  $ Cmts.fmt_after c children_loc )
+              in
+              hvbox 2 (head $ break 0 0 $ child $ break 0 (-2) $ end_tag)
+              $ fmt_extra_attrs
+          end
+    | None -> (
+        let wrap =
+          if c.conf.fmt_opts.wrap_fun_args.v then hovbox 2 else hvbox 2
         in
-        if parens || not dock_fun_arg then (noop, pro) else (pro, noop)
-      in
-      match last_arg.pexp_desc with
-      | Pexp_function (largs, ltyp, lbody, infix_ext_attrs)
-        when List.for_all args_before ~f:(fun (_, eI) ->
-                 is_simple c.conf (fun _ -> 0) (sub_exp ~ctx eI) ) ->
-          let inner_ctx = Exp last_arg in
-          let inner_parens, outer_parens =
-            (* Don't disambiguate parentheses in some cases, also affect
-               indentation. *)
-            match lbody with
-            | Pfunction_cases _ when not c.conf.fmt_opts.ocp_indent_compat.v
-              ->
-                (parens, false)
-            | _ -> (false, parens)
+        let (lbl, last_arg), args_before =
+          match List.rev e1N1 with
+          | [] -> assert false
+          | hd :: tl -> (hd, List.rev tl)
+        in
+        let intro_epi, expr_epi =
+          (* [intro_epi] should be placed inside the inner most box but
+             before anything. [expr_epi] is placed in the outermost box,
+             outside of parenthesis. *)
+          let dock_fun_arg =
+            (* Do not dock the arguments when there's more than one. *)
+            Location.line_difference e0.pexp_loc last_arg.pexp_loc = 0
           in
-          let args =
-            let wrap_intro x =
-              fmt_if inner_parens (str "(")
-              $ hvbox 0
-                  ( intro_epi
-                  $ wrap
-                      ( fmt_args_grouped e0 args_before
-                      $ break 1 0 $ hvbox 0 x ) )
-              $ break 1 0
+          if parens || not dock_fun_arg then (noop, pro) else (pro, noop)
+        in
+        match last_arg.pexp_desc with
+        | Pexp_function (largs, ltyp, lbody, infix_ext_attrs)
+          when List.for_all args_before ~f:(fun (_, eI) ->
+                   is_simple c.conf (fun _ -> 0) (sub_exp ~ctx eI) ) ->
+            let inner_ctx = Exp last_arg in
+            let inner_parens, outer_parens =
+              (* Don't disambiguate parentheses in some cases, also affect
+                 indentation. *)
+              match lbody with
+              | Pfunction_cases _
+                when not c.conf.fmt_opts.ocp_indent_compat.v ->
+                  (parens, false)
+              | _ -> (false, parens)
             in
-            let force_closing_paren =
+            let args =
+              let wrap_intro x =
+                fmt_if inner_parens (str "(")
+                $ hvbox 0
+                    ( intro_epi
+                    $ wrap
+                        ( fmt_args_grouped e0 args_before
+                        $ break 1 0 $ hvbox 0 x ) )
+                $ break 1 0
+              in
+              let force_closing_paren =
+                if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v
+                then Fit
+                else Break
+              in
+              let label_sep = Params.Exp.fun_label_sep c.conf in
+              let pro = fmt_label lbl label_sep in
+              fmt_function ~pro ~force_closing_paren ~ctx:inner_ctx ~ctx0:ctx
+                ~wrap_intro ~parens:true ~attrs:last_arg.pexp_attributes
+                ~infix_ext_attrs ~loc:last_arg.pexp_loc c (largs, ltyp, lbody)
+            in
+            hvbox_if has_attr 0
+              ( expr_epi
+              $ Params.parens_if outer_parens c.conf
+                  (args $ fmt_atrs $ fmt_if inner_parens (str ")")) )
+        | Pexp_beginend ({pexp_desc= Pexp_function _; _}, _) ->
+            let fmt_atrs =
+              fmt_attributes c ~pre:(Break (1, -2)) pexp_attributes
+            in
+            let force =
               if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v
               then Fit
               else Break
             in
+            let pro =
+              intro_epi
+              $ fmt_if parens (str "(")
+              $ fmt_args_grouped ~epi:fmt_atrs e0 args_before
+            in
             let label_sep = Params.Exp.fun_label_sep c.conf in
-            let pro = fmt_label lbl label_sep in
-            fmt_function ~pro ~force_closing_paren ~ctx:inner_ctx ~ctx0:ctx
-              ~wrap_intro ~parens:true ~attrs:last_arg.pexp_attributes
-              ~infix_ext_attrs ~loc:last_arg.pexp_loc c (largs, ltyp, lbody)
-          in
-          hvbox_if has_attr 0
-            ( expr_epi
-            $ Params.parens_if outer_parens c.conf
-                (args $ fmt_atrs $ fmt_if inner_parens (str ")")) )
-      | Pexp_beginend ({pexp_desc= Pexp_function _; _}, _) ->
-          let fmt_atrs =
-            fmt_attributes c ~pre:(Break (1, -2)) pexp_attributes
-          in
-          let force =
-            if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v then
-              Fit
-            else Break
-          in
-          let pro =
-            intro_epi
+            let pro = pro $ break 1 0 $ fmt_label lbl label_sep in
+            expr_epi
+            $ hovbox 4
+                ( fmt_expression c ~pro ~box:false (sub_exp ~ctx last_arg)
+                $ fmt_if parens (closing_paren c ~force ~offset:(-3)) )
+        | _ ->
+            let fmt_atrs =
+              fmt_attributes c ~pre:(Break (1, -2)) pexp_attributes
+            in
+            let force =
+              if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v
+              then Fit
+              else Break
+            in
+            pro
             $ fmt_if parens (str "(")
-            $ fmt_args_grouped ~epi:fmt_atrs e0 args_before
-          in
-          let label_sep = Params.Exp.fun_label_sep c.conf in
-          let pro = pro $ break 1 0 $ fmt_label lbl label_sep in
-          expr_epi
-          $ hovbox 4
-              ( fmt_expression c ~pro ~box:false (sub_exp ~ctx last_arg)
-              $ fmt_if parens (closing_paren c ~force ~offset:(-3)) )
-      | _ ->
-          let fmt_atrs =
-            fmt_attributes c ~pre:(Break (1, -2)) pexp_attributes
-          in
-          let force =
-            if Location.is_single_line pexp_loc c.conf.fmt_opts.margin.v then
-              Fit
-            else Break
-          in
-          pro
-          $ fmt_if parens (str "(")
-          $ hvbox 2
-              ( fmt_args_grouped ~epi:fmt_atrs e0 e1N1
-              $ fmt_if parens (closing_paren c ~force ~offset:(-3)) ) )
+            $ hvbox 2
+                ( fmt_args_grouped ~epi:fmt_atrs e0 e1N1
+                $ fmt_if parens (closing_paren c ~force ~offset:(-3)) ) ) )
   | Pexp_array [] ->
       pro
       $ hvbox 0

@@ -94,6 +94,9 @@ type element = {
   children : jsx_children;
   loc : Location.t;
       (** Location of the [@JSX] attribute, which spans the whole element. *)
+  extra_attrs : attributes;
+      (** Attributes other than [@JSX] carried by the application, printed
+          after the element (e.g. [(<Foo />) [@mel.as "and"]]). *)
 }
 
 (** Classify a [@JSX] application. JSX syntax can only express applications
@@ -158,11 +161,24 @@ let classify_element ~attrs e0 args =
     | (Labelled _ | Optional _), _ -> true
     | Nolabel, _ -> false
   in
-  match (attrs, tag, units, children) with
-  | ( [ { attr_name = { txt = "JSX"; _ }; attr_payload = PStr []; attr_loc } ],
+  (* Pull the [@JSX] marker out of [attrs], wherever it sits; whatever is
+     left (e.g. [@mel.as "and"] on [(<Foo />) [@mel.as "and"]]) is printed
+     after the element instead of blocking the JSX sugar entirely. *)
+  let rec split_jsx_attr acc = function
+    | [] -> None
+    | ({ attr_name = { txt = "JSX"; _ }; attr_payload = PStr []; attr_loc } as
+      _jsx)
+      :: rest ->
+      Some (attr_loc, List.rev_append acc rest)
+    | a :: rest -> split_jsx_attr (a :: acc) rest
+  in
+  match (split_jsx_attr [] attrs, tag, units, children) with
+  | ( Some (attr_loc, extra_attrs),
       Some (tag, tag_loc),
       [ unit_loc ],
       [ (children_loc, children) ] )
     when List.for_all is_prop props ->
-    Some { tag; tag_loc; unit_loc; props; children_loc; children; loc = attr_loc }
+    Some
+      { tag; tag_loc; unit_loc; props; children_loc; children;
+        loc = attr_loc; extra_attrs }
   | _ -> None
