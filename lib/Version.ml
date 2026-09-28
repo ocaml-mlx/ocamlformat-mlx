@@ -20,6 +20,14 @@ let to_string = function
 
 let pp fs v = Format.fprintf fs "%s" (to_string v)
 
+(* [version ()] belongs to the running executable, which is not this library
+   when another program links it. *)
 let current =
   let open Build_info.V1 in
-  version () |> Option.value_map ~f:Version.to_string ~default:"unknown"
+  let library_version =
+    Option.bind
+      (Statically_linked_libraries.find ~name:"ocamlformat-mlx-lib")
+      ~f:Statically_linked_library.version
+  in
+  Option.first_some library_version (version ())
+  |> Option.value_map ~f:Version.to_string ~default:"unknown"
