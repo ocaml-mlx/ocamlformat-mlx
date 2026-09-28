@@ -20,8 +20,6 @@ let to_string = function
 
 let pp fs v = Format.fprintf fs "%s" (to_string v)
 
-(* [version ()] belongs to the running executable, which is not this library
-   when another program links it. *)
 let current =
   let open Build_info.V1 in
   let library_version =
