@@ -18,11 +18,8 @@ val to_string : t -> string
 val pp : Format.formatter -> t -> unit
 
 val current : string
-(** A version number, or "unknown". This is provided by [dune-build-info]:
-    the version of the installed [ocamlformat-mlx-lib] library when it is
-    linked from an install, so programs other than [ocamlformat-mlx] that
-    link it report the same version. Otherwise it is the version of the
-    running executable, resolved in the following way:
+(** A version number, or "unknown". This is provided by [dune-build-info],
+    which means that it will be resolved in the following way:
 
     - if (version) is set in (dune-project), it is used. This is what happens
       when using opam pins (through dune subst), or for released versions
