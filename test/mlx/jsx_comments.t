@@ -27,7 +27,7 @@ is idempotent (formatting the output again produces the same text):
   let view items = <div className="row"><A /> (* Between siblings. *) <B /></div>
 
   $ echo 'let only () = <div>(* only child *)</div>' | fmt | fmt
-  let only () = <div> (* only child *)</div>
+  let only () = <div> (* only child *) </div>
 
   $ printf 'let v =\n  <Grid>\n    (* c *)\n    <ReportFooter />\n  </Grid>\n' | fmt | fmt
   let v =
