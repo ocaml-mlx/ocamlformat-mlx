@@ -31,8 +31,6 @@
   EOL
   --unused-token
   GREATERRBRACKET
-  --unused-token
-  GREATERRBRACE
   --fixed-exception
   --table
   --strategy

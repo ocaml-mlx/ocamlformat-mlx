@@ -59,12 +59,22 @@ let cmt_checker {cmts; _} =
 
 let break_between c = Ast.break_between c.source (cmt_checker c)
 
-let is_jsx_element e =
-  match e.pexp_attributes with
-  | [{attr_name={txt="JSX";_}; attr_payload=PStr []; _}] -> true
-  | _ -> false
-
 module Jsx = Ocamlformat_parser_extended.Jsx_helper
+
+let classify_jsx_element c ~attrs e0 args =
+  Jsx.classify_element ~attrs e0 args
+  |> Option.filter ~f:(fun {Jsx.unit_loc; _} ->
+         (* JSX omits the unit argument, so keep applications that comment it. *)
+         not
+           (Cmts.has_before c.cmts unit_loc
+           || Cmts.has_within c.cmts unit_loc
+           || Cmts.has_after c.cmts unit_loc))
+
+let is_jsx_element c e =
+  match e.pexp_desc with
+  | Pexp_apply (e0, args) ->
+      Option.is_some (classify_jsx_element c ~attrs:e.pexp_attributes e0 args)
+  | _ -> false
 
 type block =
   { opn: Fmt.t option
@@ -2303,8 +2313,8 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
              $ fmt_expression c ~box (sub_exp ~ctx e)
              $ fmt_atrs ) )
   | Pexp_apply (e0, e1N1) -> (
-      match Jsx.classify_element ~attrs:pexp_attributes e0 e1N1 with
-      | Some {Jsx.tag; tag_loc; props; children_loc; children; loc= jsx_loc} ->
+      match classify_jsx_element c ~attrs:pexp_attributes e0 e1N1 with
+      | Some {Jsx.tag; tag_loc; props; children_loc; children; loc= jsx_loc; _} ->
         let start_tag = str ("<" ^ tag) $ Cmts.fmt_after c tag_loc in
         let end_tag = str ("</" ^ tag ^ ">") in
         let props =
@@ -2317,7 +2327,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
               | Pexp_ident {txt=Lident id; loc=_} when String.equal id label.txt ->
                 flabel
               | _ ->
-                if is_jsx_element e then
+                if is_jsx_element c e then
                   flabel $ str "=(" $ fmt_expression c (sub_exp ~ctx e) $ str ")"
                 else
                   flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
@@ -2344,7 +2354,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
             hvbox 0 (
               list children (break 1 0)
               (fun e ->
-                if is_jsx_element e then
+                if is_jsx_element c e then
                   fmt_expression c ~parens:false (sub_exp ~ctx e)
                 else
                   fmt_expression c (sub_exp ~ctx e))
@@ -2360,7 +2370,7 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
             else noop
           in
           let child_expr =
-            if is_jsx_element e then
+            if is_jsx_element c e then
               fmt_expression c ~parens:false (sub_exp ~ctx e)
             else
               fmt_expression c (sub_exp ~ctx e)
@@ -3010,12 +3020,6 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                  pcstr_fields
              $ fmt_atrs ) )
   | Pexp_override l -> (
-      (* a bare [>] comparison in an override field is ambiguous with the closer, so force parens *)
-      let is_bare_greater_comparison f =
-        match f.pexp_desc with
-        | Pexp_infix ({txt= ">"; _}, _, _) -> true
-        | _ -> false
-      in
       let fmt_field ({txt; loc}, f) =
         let eol = break 1 3 in
         let txt = Longident.lident txt in
@@ -3025,11 +3029,9 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                && List.is_empty f.pexp_attributes ->
             Cmts.fmt c ~eol loc @@ fmt_longident c txt'
         | _ ->
-            let force_parens = is_bare_greater_comparison f in
             Cmts.fmt c ~eol loc @@ fmt_longident c txt
             $ str " = "
-            $ Params.parens_if force_parens c.conf
-                (fmt_expression c (sub_exp ~ctx f))
+            $ fmt_expression c (sub_exp ~ctx f)
       in
       match l with
       | [] ->
