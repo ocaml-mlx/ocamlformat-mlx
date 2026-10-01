@@ -7,14 +7,13 @@
  (enabled_if
   (<> %{os_type} Win32)))
 
-; TERM=dumb avoids unstable output from Cmdliner.
-; The cram tests keep calling "ocamlformat", as upstream's tests do, so the
-; fork's binary is renamed to "ocamlformat" here. Dune puts it first on PATH,
-; ahead of an ocamlformat installed in the opam switch.
-
 (env
  (_
   (env-vars
+   ; TERM=dumb avoids unstable output from Cmdliner.
    (TERM dumb))
+  ; The cram tests keep calling "ocamlformat", as upstream's tests do, so the
+  ; fork's binary is renamed to "ocamlformat" here. Dune puts it first on PATH,
+  ; ahead of an ocamlformat installed in the opam switch.
   (binaries
    (../../bin/ocamlformat/ocamlformat.exe as ocamlformat))))
