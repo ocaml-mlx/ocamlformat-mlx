@@ -1,7 +1,3 @@
-; Upstream's tests call "ocamlformat". The binaries field below puts the
-; fork's binary under that name first on PATH, ahead of an ocamlformat in the
-; opam switch.
-
 (cram
  (package ocamlformat-mlx)
  (deps %{bin:ocamlformat} %{bin:ocamlformat-mlx}))
@@ -11,7 +7,10 @@
  (enabled_if
   (<> %{os_type} Win32)))
 
-; Avoid unstable output from Cmdliner
+; TERM=dumb avoids unstable output from Cmdliner.
+; The cram tests keep calling "ocamlformat", as upstream's tests do, so the
+; fork's binary is renamed to "ocamlformat" here. Dune puts it first on PATH,
+; ahead of an ocamlformat installed in the opam switch.
 
 (env
  (_
