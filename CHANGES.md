@@ -44,6 +44,23 @@ profile. This started with version 0.26.0.
   first label. The already-working spaced form `< m : int >` is
   unaffected.
 
+- Fix a comment attached to a punned JSX prop (e.g. `<A label (* c *)
+  other=1 />`) being silently dropped: punning no longer takes its
+  shortcut when the prop's expression carries a comment, falling back to
+  the explicit `label=label` form so the comment prints.
+
+- `[@JSX]` applications carrying an extra attribute (e.g. `(<Foo />)
+  [@mel.as "and"]`) are sugared into JSX syntax again, with the extra
+  attribute(s) printed after the element, instead of falling back to a
+  raw `createElement` application. The `[@JSX]` marker may appear
+  anywhere in the attribute list.
+
+- \* Keep a self-closing JSX element's `/>` on the tag's line when it fits,
+  also after an own-line comment.
+
+- \* Add a space between a JSX child comment and the tag it touches:
+  `<div> (* c *) </div>`.
+
 ## 0.29.0
 
 ### Highlight
