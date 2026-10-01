@@ -50,11 +50,8 @@ profile. This started with version 0.26.0.
   raw `createElement` application. The `[@JSX]` marker may appear
   anywhere in the attribute list.
 
-- \* Keep a self-closing JSX element's `/>` on the tag's line when it fits.
-  An own-line comment before the element (e.g. `(* c *) <Footer />`) used
-  to push `/>` onto its own line, and the width check for the tag and props
-  ignored the width of ` />`. When the element breaks, `/>` now goes on its
-  own line at the tag's column, like `</Tag>` for an element with children.
+- \* Keep a self-closing JSX element's `/>` on the tag's line when it fits,
+  also after an own-line comment.
 
 ## 0.29.0
 
