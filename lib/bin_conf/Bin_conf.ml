@@ -539,9 +539,15 @@ let update_using_cmdline config =
   | Ok (`Ok conf_modif) -> conf_modif config
   | Error _ | Ok (`Version | `Help) -> config
 
+let path_to_absolute f =
+  let f =
+    if Fpath.is_rel f then Fpath.append (Fpath.v (Stdlib.Sys.getcwd ())) f
+    else f
+  in
+  Fpath.normalize f
+
 let build_config ~enable_outside_detected_project ~root ~file ~is_stdin =
-  let vfile = Fpath.v file in
-  let file_abs = Fpath.(vfile |> to_absolute |> normalize) in
+  let file_abs = path_to_absolute (Fpath.v file) in
   let fs =
     File_system.make ~enable_outside_detected_project
       ~disable_conf_files:!global_conf.disable_conf_files
@@ -579,7 +585,7 @@ let build_config ~enable_outside_detected_project ~root ~file ~is_stdin =
        | Some root ->
            Format.sprintf
              "no [.ocamlformat] was found within the project (root: %s)"
-             (Fpath.to_string ~relativize:true root)
+             (normalized_path_to_string root)
        | None -> "no project root was found"
      in
      warn ~loc:(Location.in_file file)
@@ -598,7 +604,7 @@ let build_config ~enable_outside_detected_project ~root ~file ~is_stdin =
           if conf.opr_opts.disable.v then "enabled" else "ignored"
         in
         if conf.opr_opts.debug.v then
-          warn ~loc "%a is %s." Fpath.pp file_abs status ;
+          warn ~loc "%s is %s." (normalized_path_to_string file_abs) status ;
         Operational.update conf ~f:(fun f ->
             {f with disable= {f.disable with v= not f.disable.v}} )
     | None -> conf
@@ -745,8 +751,7 @@ let validate_action () =
 
 let validate () =
   let root =
-    Option.map !global_conf.root
-      ~f:Fpath.(fun x -> v x |> to_absolute |> normalize)
+    Option.map !global_conf.root ~f:Fpath.(fun x -> path_to_absolute (v x))
   in
   let enable_outside_detected_project =
     !global_conf.enable_outside_detected_project && Option.is_none root

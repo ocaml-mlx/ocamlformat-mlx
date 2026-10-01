@@ -171,7 +171,7 @@ let pp_from_src fs = function
         | `File loc -> ("file", loc)
         | `Attribute loc -> ("attribute", loc)
       in
-      let fname = Fpath.to_string ~relativize:true (Fpath.v pos_fname) in
+      let fname = normalized_path_to_string (Fpath.v pos_fname) in
       Format.fprintf fs " (%s %s:%i)" kind fname pos_lnum
   | `Env -> Format.fprintf fs " (environment variable)"
   | `Commandline -> Format.fprintf fs " (command line)"
