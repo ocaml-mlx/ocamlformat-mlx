@@ -1,11 +1,14 @@
 include module type of Base
 include module type of Stdio
-module Fpath = Fpath_ext
 module List = List_ext
 module String = String_ext
 module Warning = Warning
 module Format = Stdlib.Format
 module Filename = Stdlib.Filename
+
+val normalized_path_to_string : Fpath.t -> string
+(** Render a path relative to the current directory using [/] as
+    separator on every platforms to ensure reproducible output in tests. *)
 
 val ( >> ) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
 (** Composition of functions: [(f >> g) x] is exactly equivalent to

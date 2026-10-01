@@ -13,6 +13,11 @@ profile. This started with version 0.26.0.
   application now also prints as a spread instead of a raw application
   (#16, ocaml-mlx/mlx#45)
 
+### Changed
+
+- Empty bodies of while loops will be formatted on one line: `do () done`.
+  (#2812, @v-gb)
+
 ### Fixed
 
 - Restore parsing and formatting of unparenthesized object-override field
@@ -60,6 +65,46 @@ profile. This started with version 0.26.0.
 
 - \* Add a space between a JSX child comment and the tag it touches:
   `<div> (* c *) </div>`.
+
+- Fix the indentation of the `in` keyword after a local exception: it is no
+  longer indented one level deeper than the enclosing `let`, matching the
+  behaviour of local types and modules.
+  (#2822, #2823, @MisterDA)
+
+- Fix `begin match … end` (and `begin if … end`) branches: with
+  `if-then-else=fit-or-vertical` the `match … with` header no longer splits
+  over several lines and `end` is aligned with `begin`; and a leading comment
+  on the body no longer reindents it — `begin` keeps the body one indent in
+  instead of gluing the keyword to the comment.
+  (#2810, #2815, @MisterDA, @yakobowski)
+
+- Fix indentation of a bare `match`/`function`/`try` branch preceded by a
+  comment with `if-then-else=fit-or-vertical`: the branch is no longer
+  indented relative to the comment's end column.
+  (#2810, @MisterDA)
+
+- Fix formatting oscillation with `if-then-else=fit-or-vertical` and
+  `begin...end`.
+  (#2800, @MisterDA)
+
+- Fix instability on long `if-then-else` with `if-then-else=fit-or-vertical`
+  (#2797, @MisterDA)
+
+- Fix `match` in `if-then-else` branches expanding to vertical with
+  `fit-or-vertical` (#2798, @MisterDA)
+
+- Fix lexer error on Windows when an Odoc code block contains CRLF line
+  endings (@hhugo)
+
+- Fix missing parentheses in `(a, ~b:(if .. then .. else ..))` (#2811, @Julow)
+
+- Fix configuration in `$XDG_CONFIG_HOME` was not used when
+  `--enable-outside-detected-project` was passed (#2816, @torimus)
+
+- \* Fix a comment before `in` in a `let … in` binding forcing an unnecessary
+  vertical break: `let x = v (* comment *) in …` is no longer split across
+  several lines when it otherwise fits. This also fixes a related
+  non-idempotency. (#2813, @yakobowski)
 
 ## 0.29.0
 

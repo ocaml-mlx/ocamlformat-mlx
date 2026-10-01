@@ -221,6 +221,7 @@ type if_then_else =
 val get_if_then_else :
      Conf.t
   -> cmts_before_opt:(Location.t -> Fmt.t option)
+  -> has_cmts_before:(Location.t -> bool)
   -> pro:Fmt.t
   -> first:bool
   -> last:bool
@@ -236,6 +237,16 @@ val get_if_then_else :
   -> cmts_after_kw:Fmt.t option
   -> if_then_else
 (** [cmts_before_opt] return the comment before the given location with no breaks around it. *)
+
+val is_special_or_nested_special_beginend : expression_desc -> bool
+(** [is_special_or_nested_special_beginend] returns [true] when comments after
+    the keyword should be extracted without breaks (raw) to prevent oscillation
+    between "after keyword" and "before expression" placements. *)
+
+val raw_cmts_branch_pro : Conf.t -> Fmt.t -> Fmt.t
+(** [raw_cmts_branch_pro c cmts] returns the branch_pro for raw comments
+    extracted after a keyword, using the correct indentation for the current
+    if-then-else mode. *)
 
 val match_indent : ?default:int -> Conf.t -> parens:bool -> ctx:Ast.t -> int
 (** [match_indent c ~ctx ~default] returns the indentation used for the
