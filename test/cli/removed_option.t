@@ -1,4 +1,3 @@
-  $ export PATH=$PWD:$PATH
   $ echo 'let x = y' > a.ml
 
 Setting a removed option on the command line should display an error message:

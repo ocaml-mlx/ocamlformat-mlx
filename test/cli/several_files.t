@@ -1,4 +1,3 @@
-  $ export PATH=$PWD:$PATH
   $ echo 'let x = 1' > a.ml
   $ echo 'let x = 2' > b.ml
   $ ocamlformat a.ml b.ml

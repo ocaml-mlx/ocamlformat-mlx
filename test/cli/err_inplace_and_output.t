@@ -1,4 +1,3 @@
-  $ export PATH=$PWD:$PATH
   $ echo 'let x = 1' > a.ml
 
   $ ocamlformat --inplace --output o.ml a.ml

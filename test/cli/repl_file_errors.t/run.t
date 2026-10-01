@@ -1,4 +1,3 @@
-  $ export PATH=$PWD/..:$PATH
   $ echo profile=default > .ocamlformat
 
 Make sure the locations of errors in repl files are right.

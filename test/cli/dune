@@ -1,14 +1,10 @@
-; Upstream's tests call "ocamlformat". Each .t file puts this copy of
-; ocamlformat-mlx first on PATH, ahead of an ocamlformat in the opam switch.
-
-(rule
- (target ocamlformat)
- (action
-  (copy %{bin:ocamlformat-mlx} ocamlformat)))
+; Upstream's tests call "ocamlformat". The binaries field below puts the
+; fork's binary under that name first on PATH, ahead of an ocamlformat in the
+; opam switch.
 
 (cram
  (package ocamlformat-mlx)
- (deps ocamlformat %{bin:ocamlformat-mlx}))
+ (deps %{bin:ocamlformat} %{bin:ocamlformat-mlx}))
 
 (cram
  (applies_to large_string conf removed_option repl_file_errors debug)
@@ -20,4 +16,6 @@
 (env
  (_
   (env-vars
-   (TERM dumb))))
+   (TERM dumb))
+  (binaries
+   (../../bin/ocamlformat/ocamlformat.exe as ocamlformat))))

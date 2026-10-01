@@ -1,4 +1,3 @@
-  $ export PATH=$PWD:$PATH
   $ echo profile=default > .ocamlformat
 
   $ echo "let _ = \"$(printf '%*s' 300000 | sed 's/ /_ _/g')\"" > a.ml

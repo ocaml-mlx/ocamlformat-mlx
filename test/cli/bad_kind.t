@@ -1,4 +1,3 @@
-  $ export PATH=$PWD:$PATH
   $ echo profile=default > .ocamlformat
 
   $ echo 'module X : S' > a.mli

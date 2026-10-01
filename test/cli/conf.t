@@ -1,6 +1,5 @@
 Invalid version:
 
-  $ export PATH=$PWD:$PATH
   $ mkdir prj
   $ cd prj
 
