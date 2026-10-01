@@ -8,7 +8,7 @@
 
 (cram
  (package ocamlformat-mlx)
- (deps ocamlformat))
+ (deps ocamlformat %{bin:ocamlformat-mlx}))
 
 (cram
  (applies_to large_string conf removed_option repl_file_errors debug)
