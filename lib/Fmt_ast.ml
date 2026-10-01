@@ -2367,8 +2367,8 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
         $ Cmts.fmt c jsx_loc
           @@ begin match children with
           | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->
-              hvbox 2 (start_tag $ props)
-              $ space_break $ str "/>" $ fmt_extra_attrs
+              hvbox 2 (start_tag $ props $ break 1 (-2) $ str "/>")
+              $ fmt_extra_attrs
           | Jsx.Children children ->
               let head = hvbox 2 (start_tag $ props $ str ">") in
               let children =
