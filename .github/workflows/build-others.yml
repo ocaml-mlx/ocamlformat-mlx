@@ -36,7 +36,7 @@ jobs:
 
       - name: Opam dependencies
         run: |
-          opam install -y --deps-only -t ./ocamlformat-lib.opam ./ocamlformat.opam ./ocamlformat-rpc-lib.opam
+          opam install -y --deps-only -t ./ocamlformat-mlx-lib.opam ./ocamlformat-mlx.opam
 
 #      - name: Format
 #        run: opam exec -- dune fmt
