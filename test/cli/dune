@@ -1,6 +1,14 @@
+; Upstream's tests call "ocamlformat". Each .t file puts this copy of
+; ocamlformat-mlx first on PATH, ahead of an ocamlformat in the opam switch.
+
+(rule
+ (target ocamlformat)
+ (action
+  (copy %{bin:ocamlformat-mlx} ocamlformat)))
+
 (cram
- (package ocamlformat)
- (deps %{bin:ocamlformat}))
+ (package ocamlformat-mlx)
+ (deps ocamlformat))
 
 (cram
  (applies_to large_string conf removed_option repl_file_errors debug)

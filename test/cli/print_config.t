@@ -1,5 +1,6 @@
 No redundant values:
 
+  $ export PATH=$PWD:$PATH
   $ mkdir prj
   $ cd prj
 

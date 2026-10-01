@@ -1,5 +1,6 @@
 First project formatted with the 'janestreet' profile:
 
+  $ export PATH=$PWD:$PATH
   $ mkdir project1
   $ echo profile=janestreet > project1/.ocamlformat
   $ echo 'let _machin ?aaaaaaaaaa:_ ?bbbbbbbbbbb:_ ?cccccccccccc:_ ?ddddddddddddd:_ ?eeeeeeeeeeee:_ () = ()' > project1/main.ml

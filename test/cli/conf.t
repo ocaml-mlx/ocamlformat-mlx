@@ -1,5 +1,6 @@
 Invalid version:
 
+  $ export PATH=$PWD:$PATH
   $ mkdir prj
   $ cd prj
 
@@ -47,7 +48,7 @@ Invalid value:
 
 Compatible version prefix:
 
-  $ base_version=$(ocamlformat --version | awk -F. 'NF>3 {NF--; OFS="."; print; next} {print}')
+  $ base_version=$(ocamlformat --version | awk -F. -v OFS=. 'NF>3 {NF--} {print}')
   $ echo "version = $base_version" > .ocamlformat
   $ <a.ml ocamlformat --impl -
   let x = "Hello World"
