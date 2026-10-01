@@ -26,7 +26,7 @@ jobs:
 
     steps:
       # Clone the project
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v2
 
       # Setup
       - name: Setup OCaml ${{ matrix.ocaml-version }}
@@ -35,8 +35,7 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
       - name: Opam dependencies
-        run: |
-          opam install -y --deps-only -t ./ocamlformat-mlx-lib.opam ./ocamlformat-mlx.opam
+        run: opam install --deps-only -t .
 
 #      - name: Format
 #        run: opam exec -- dune fmt

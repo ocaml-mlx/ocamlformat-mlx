@@ -10,10 +10,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (executable
- (name ocamlformat)
+ (name main)
  (public_name ocamlformat-mlx)
  (package ocamlformat-mlx)
- (modules ocamlformat)
+ (modules main)
  (flags
   (:standard -open Ocamlformat_stdlib))
  (instrumentation
@@ -23,7 +23,7 @@
 (rule
  (with-stdout-to
   ocamlformat.1
-  (run ./ocamlformat.exe --help=groff)))
+  (run ./main.exe --help=groff)))
 
 ; (install
 ;  (section man)

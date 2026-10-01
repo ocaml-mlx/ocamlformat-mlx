@@ -97,7 +97,9 @@ let _ =
     (for i = 0 to 1 do
        ()
      done)
-    (while true do () done)
+    (while true do
+       ()
+     done)
 ;;
 
 let _ =
@@ -105,7 +107,9 @@ let _ =
     (for%ext i = 0 to 1 do
        ()
      done)
-    (while%ext true do () done)
+    (while%ext true do
+       ()
+     done)
 ;;
 
 let _ = function%ext

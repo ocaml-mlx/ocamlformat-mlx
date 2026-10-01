@@ -26,7 +26,7 @@ jobs:
 
     steps:
       # Clone the project
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           # Don't checkout the implicit merge commit to avoid wrong substitution
           ref: ${{ github.event.pull_request.head.sha }}
@@ -63,7 +63,8 @@ jobs:
 #        run: opam exec -- dune build @gen_manpage --auto-promote
 
       - name: Upload binary
-        uses: actions/upload-artifact@v7
+        # Using a specific version because of https://github.com/actions/upload-artifact/issues/590
+        uses: actions/upload-artifact@v4.3.4
         with:
           name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
           path: _build/install/default/bin/ocamlformat-mlx
@@ -78,7 +79,7 @@ jobs:
 
     steps:
       - name: checkout tree
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           submodules: 'true'
           # Fetch tags so dune-release picks up the version from `git describe`
@@ -133,17 +134,17 @@ jobs:
 #          sudo touch /etc/ocamlfind.conf
 #
 #      # Clone the project
-#      - uses: actions/checkout@v7
+#      - uses: actions/checkout@v3
 #        with:
 #          fetch-depth: 0
 #
-#      - uses: actions/cache@v5
+#      - uses: actions/cache@v3
 #        with:
 #          path: test-extra/code
 #          key: test-extra-code
 #
 #      - name: Fetch main build of ocamlformat
-#        uses: dawidd6/action-download-artifact@v21
+#        uses: dawidd6/action-download-artifact@v6
 #        with:
 #          workflow: build-linux.yml
 #          workflow_conclusion: ""
@@ -154,7 +155,7 @@ jobs:
 #          allow_forks: true
 #
 #      - name: Fetch new build of ocamlformat
-#        uses: actions/download-artifact@v8
+#        uses: actions/download-artifact@v4.1.7
 #        with:
 #          name: ocamlformat-${{ runner.os }}-${{ runner.arch }}
 #          path: ocamlformat-b
