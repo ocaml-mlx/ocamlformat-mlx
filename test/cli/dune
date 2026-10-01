@@ -1,15 +1,19 @@
 (cram
- (package ocamlformat)
- (deps %{bin:ocamlformat}))
+ (package ocamlformat-mlx)
+ (deps %{bin:ocamlformat} %{bin:ocamlformat-mlx}))
 
 (cram
  (applies_to large_string conf removed_option repl_file_errors debug)
  (enabled_if
   (<> %{os_type} Win32)))
 
-; Avoid unstable output from Cmdliner
-
 (env
  (_
   (env-vars
-   (TERM dumb))))
+   ; TERM=dumb avoids unstable output from Cmdliner.
+   (TERM dumb))
+  ; The cram tests keep calling "ocamlformat", as upstream's tests do, so the
+  ; fork's binary is renamed to "ocamlformat" here. Dune puts it first on PATH,
+  ; ahead of an ocamlformat installed in the opam switch.
+  (binaries
+   (../../bin/ocamlformat/ocamlformat.exe as ocamlformat))))
