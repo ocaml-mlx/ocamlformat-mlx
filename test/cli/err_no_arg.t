@@ -1,3 +1,4 @@
+  $ export PATH=$PWD:$PATH
   $ ocamlformat
-  ocamlformat: Must specify at least one input file, or `-` for stdin
+  ocamlformat-mlx: Must specify at least one input file, or `-` for stdin
   [1]

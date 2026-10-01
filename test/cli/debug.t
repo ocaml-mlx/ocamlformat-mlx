@@ -1,3 +1,4 @@
+  $ export PATH=$PWD:$PATH
   $ echo profile=default > .ocamlformat
 
   $ cat > a.ml << EOF

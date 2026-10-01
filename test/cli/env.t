@@ -1,5 +1,6 @@
 Invalid option:
 
+  $ export PATH=$PWD:$PATH
   $ echo 'let x = 1' | OCAMLFORMAT="unknown=true" ocamlformat --impl - 2>/dev/null
   [1]
 
