@@ -50,6 +50,12 @@ profile. This started with version 0.26.0.
   raw `createElement` application. The `[@JSX]` marker may appear
   anywhere in the attribute list.
 
+- \* Keep a self-closing JSX element's `/>` on the tag's line when it fits,
+  also after an own-line comment.
+
+- \* Add a space between a JSX child comment and the tag it touches:
+  `<div> (* c *) </div>`.
+
 ## 0.29.0
 
 ### Highlight

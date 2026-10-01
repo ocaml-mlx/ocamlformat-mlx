@@ -113,18 +113,18 @@ Modident:
 
 Comments:
   $ echo '<div> a  (* 1 *)  </div>' | fmt
-  <div>a (* 1 *)</div>
+  <div>a (* 1 *) </div>
   $ echo '<App> a  (* 1 *)  </App>' | fmt
-  <App>a (* 1 *)</App>
+  <App>a (* 1 *) </App>
   $ echo '<App.name> a  (* 1 *)  </App.name>' | fmt
-  <App.name>a (* 1 *)</App.name>
+  <App.name>a (* 1 *) </App.name>
 
   $ echo '<div>  (* 1 *) b </div>' | fmt
-  <div>(* 1 *) b</div>
+  <div> (* 1 *) b</div>
   $ echo '<App>  (* 1 *) b </App>' | fmt
-  <App>(* 1 *) b</App>
+  <App> (* 1 *) b</App>
   $ echo '<App.name>  (* 1 *) b </App.name>' | fmt
-  <App.name>(* 1 *) b</App.name>
+  <App.name> (* 1 *) b</App.name>
 
   $ echo '<div> a (* 1 *)  b </div>' | fmt
   <div>a (* 1 *) b</div>
@@ -134,11 +134,11 @@ Comments:
   <App.name>a (* 1 *) b</App.name>
 
   $ echo '<div> (* 1 *)   </div>' | fmt
-  <div> (* 1 *)</div>
+  <div> (* 1 *) </div>
   $ echo '<App> (* 1 *)   </App>' | fmt
-  <App> (* 1 *)</App>
+  <App> (* 1 *) </App>
   $ echo '<App.name> (* 1 *)   </App.name>' | fmt
-  <App.name> (* 1 *)</App.name>
+  <App.name> (* 1 *) </App.name>
 
   $ echo '<div a=1 (* 1 *) b=2 />' | fmt
   <div a=1 (* 1 *) b=2 />
@@ -166,11 +166,11 @@ Comments:
   $ echo '<div> <a /> (* 1 *) <b /> </div>' | fmt
   <div><a /> (* 1 *) <b /></div>
   $ echo '<div>  (* 1 *) <b /> </div>' | fmt
-  <div>(* 1 *) <b /></div>
+  <div> (* 1 *) <b /></div>
   $ echo '<div> <a /> (* 1 *)  </div>' | fmt
-  <div><a /> (* 1 *)</div>
+  <div><a /> (* 1 *) </div>
   $ echo '<div>  (* 1 *)  </div>' | fmt
-  <div> (* 1 *)</div>
+  <div> (* 1 *) </div>
 
   $ echo '((* before a parenthesised JSX child *) <form/>)' | fmt
   (* before a parenthesised JSX child *) <form />

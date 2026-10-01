@@ -2367,10 +2367,24 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
         $ Cmts.fmt c jsx_loc
           @@ begin match children with
           | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->
-              hvbox 2 (start_tag $ props)
-              $ space_break $ str "/>" $ fmt_extra_attrs
+              hvbox 2 (start_tag $ props $ break 1 (-2) $ str "/>")
+              $ fmt_extra_attrs
           | Jsx.Children children ->
               let head = hvbox 2 (start_tag $ props $ str ">") in
+              (* Cmts spaces a comment only on its sibling side; add the
+                 space on the tag side. *)
+              let leads_with_cmt =
+                match children with
+                | [] -> false
+                | first :: _ -> Cmts.has_before c.cmts first.pexp_loc
+              in
+              let trails_with_cmt = Cmts.has_after c.cmts children_loc in
+              let open_tag_break =
+                if leads_with_cmt then break 1 0 else break 0 0
+              in
+              let close_tag_break =
+                if trails_with_cmt then break 1 (-2) else break 0 (-2)
+              in
               let children =
                 hvbox 0
                   ( list children (break 1 0) (fun e ->
@@ -2379,7 +2393,8 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                         else fmt_expression c (sub_exp ~ctx e) )
                   $ Cmts.fmt_after c children_loc )
               in
-              hvbox 2 (head $ break 0 0 $ children $ break 0 (-2) $ end_tag)
+              hvbox 2
+                (head $ open_tag_break $ children $ close_tag_break $ end_tag)
               $ fmt_extra_attrs
           | Jsx.Spread e ->
               let head = hvbox 2 (start_tag $ props $ str ">") in

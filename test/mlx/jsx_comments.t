@@ -27,7 +27,28 @@ is idempotent (formatting the output again produces the same text):
   let view items = <div className="row"><A /> (* Between siblings. *) <B /></div>
 
   $ echo 'let only () = <div>(* only child *)</div>' | fmt | fmt
-  let only () = <div> (* only child *)</div>
+  let only () = <div> (* only child *) </div>
+
+  $ printf 'let v =\n  <Grid>\n    (* c *)\n    <ReportFooter />\n  </Grid>\n' | fmt | fmt
+  let v =
+    <Grid>
+      (* c *)
+      <ReportFooter />
+    </Grid>
+
+  $ printf 'let v =\n  <Grid>\n    (* c *)\n    <ReportFooter footer />\n  </Grid>\n' | fmt | fmt
+  let v =
+    <Grid>
+      (* c *)
+      <ReportFooter footer />
+    </Grid>
+
+  $ printf 'let v =\n  <Grid>\n    (* c *)\n    <ReportFooter footer=x />\n  </Grid>\n' | fmt | fmt
+  let v =
+    <Grid>
+      (* c *)
+      <ReportFooter footer=x />
+    </Grid>
 
 A comment before the tag's first prop is kept, on a component and on a DOM
 element alike:
