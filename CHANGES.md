@@ -15,6 +15,11 @@ profile. This started with version 0.26.0.
 
 ### Fixed
 
+- Fix `Version.current` being `"unknown"` in programs other than
+  `ocamlformat-mlx` that link `ocamlformat-mlx-lib`, which made them reject a
+  matching `version=` in `.ocamlformat`. It now reports the version of the
+  linked library.
+
 - Fix JSX elements closed directly before `|]` in array literals (e.g.
   `[|<div>aa</div>|]`) and before `}` in record/braced expressions (e.g.
   `{x = <div>a</div>}`), which previously failed to parse because the
