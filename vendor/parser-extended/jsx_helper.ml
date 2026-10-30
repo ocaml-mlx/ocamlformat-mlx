@@ -81,6 +81,18 @@ let make_jsx_element ~raise ~loc:_ ~tag ~end_tag ~props ~children () =
   let props = (Labelled {txt="children"; loc=children.pexp_loc}, children) :: props in
   Pexp_apply (tag, (Nolabel, unit) :: props)
 
+let make_jsx_fragment ~children =
+  (* The empty tag name cannot be written in source, so it marks a fragment. *)
+  let tag =
+    Exp.mk ~loc:Location.none (Pexp_ident { loc = Location.none; txt = Lident "" })
+  in
+  let unit =
+    Exp.mk ~loc:Location.none
+      (Pexp_construct ({ txt = Lident "()"; loc = Location.none }, None))
+  in
+  Pexp_apply
+    (tag, [ Nolabel, unit; Labelled { txt = "children"; loc = children.pexp_loc }, children ])
+
 (** The children of a JSX element: a list of children, or a single spread child (`<Foo> ...expr </Foo>`). *)
 type jsx_children = Children of expression list | Spread of expression
 

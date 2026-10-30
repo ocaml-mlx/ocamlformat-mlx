@@ -825,6 +825,8 @@ let mk_directive ~loc name arg =
 %token LBRACKETPERCENTPERCENT "[%%"
 %token LESS                   "<"
 (* %token LESSSLASH              "</" *)
+%token LESSGREATER            "<>"
+%token LESSSLASHGREATER       "</>"
 %token LESSMINUS              "<-"
 %token LET                    "let"
 %token <string> LIDENT        "lident" (* just an example *)
@@ -944,7 +946,7 @@ The precedences must be listed from low to high.
 %right    OR BARBAR                     /* expr (e || e || e) */
 %right    AMPERSAND AMPERAMPER          /* expr (e && e && e) */
 %nonassoc below_EQUAL
-%left     INFIXOP0 EQUAL LESS GREATER   /* expr (e OP e OP e) */
+%left     INFIXOP0 EQUAL LESS GREATER LESSGREATER LESSSLASHGREATER   /* expr (e OP e OP e) */
 %right    INFIXOP1                      /* expr (e OP e OP e) */
 %nonassoc below_LBRACKETAT
 %nonassoc LBRACKETAT
@@ -2565,7 +2567,7 @@ fun_expr:
       { unclosed "do" $loc($1) "done" $loc($2) }
 ;
 %inline expr_:
-  | simple_expr nonempty_llist(labeled_simple_expr)
+  | simple_expr nonempty_llist(labeled_simple_expr) %prec below_HASH
       { Pexp_apply($1, $2) }
   | labeled_tuple %prec below_COMMA
       { Pexp_tuple($1) }
@@ -2601,6 +2603,7 @@ simple_expr:
   | simple_expr_attrs
     { mkexp ~loc:$sloc $1 }
   | e = jsx_element { Jsx_helper.mkjsxexp ~loc:$loc(e) e }
+  | e = jsx_fragment { Jsx_helper.mkjsxexp ~loc:$loc(e) e }
   | mkexp(simple_expr_)
       { $1 }
 ;
@@ -2754,6 +2757,15 @@ jsx_element:
       let _ = end_tag_ in
       Jsx_helper.make_jsx_element ()
         ~raise ~loc:$loc(tag) ~tag ~end_tag:(Some (end_tag, $loc(end_tag_))) ~props ~children
+    }
+;
+jsx_fragment:
+    LESSGREATER children=llist(simple_expr) LESSSLASHGREATER {
+      let children = mkexp ~loc:$loc(children) (Pexp_list children) in
+      Jsx_helper.make_jsx_fragment ~children
+    }
+  | LESSGREATER DOTDOTDOT children=simple_expr LESSSLASHGREATER {
+      Jsx_helper.make_jsx_fragment ~children
     }
 ;
 jsx_prop:
@@ -4191,6 +4203,8 @@ operator:
   | PERCENT        {"%"}
   | EQUAL          {"="}
   | LESS           {"<"}
+  | LESSGREATER    {"<>"}
+  | LESSSLASHGREATER { not_expecting $loc "operator \"</>\" (reserved for JSX fragments)" }
   | GREATER        {">"}
   | OR            {"or"}
   | BARBAR        {"||"}

@@ -2380,12 +2380,23 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
               phys_equal e exp && not self_closing
           | _ -> false
         in
+        let fragment_arg =
+          String.is_empty tag
+          &&
+          match ctx0 with
+          | Exp {pexp_desc= Pexp_apply (_, args); _} ->
+              List.exists args ~f:(fun (lbl, arg) ->
+                  phys_equal arg exp
+                  && match lbl with Nolabel -> true | _ -> false )
+          | _ -> false
+        in
         pro
-        $ Params.parens_if tag_parens c.conf
+        $ Params.parens_if (tag_parens || fragment_arg) c.conf
           @@ Cmts.fmt c jsx_loc
           @@ begin match children with
           | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->
-              hvbox 2 (start_tag $ props $ break 1 (-2) $ str "/>")
+              ( if String.is_empty tag then str "<></>"
+                else hvbox 2 (start_tag $ props $ break 1 (-2) $ str "/>") )
               $ fmt_extra_attrs
           | Jsx.Children children ->
               let head = hvbox 2 (start_tag $ props $ str ">") in
