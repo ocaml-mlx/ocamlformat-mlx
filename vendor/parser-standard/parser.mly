@@ -4158,7 +4158,7 @@ operator:
   | EQUAL          {"="}
   | LESS           {"<"}
   | LESSGREATER    {"<>"}
-  | LESSSLASHGREATER { not_expecting $loc "operator \"</>\" (reserved for JSX fragments)" }
+  | LESSSLASHGREATER {"</>"}
   | GREATER        {">"}
   | OR            {"or"}
   | BARBAR        {"||"}

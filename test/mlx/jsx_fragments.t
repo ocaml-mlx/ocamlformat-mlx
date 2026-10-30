@@ -191,26 +191,42 @@ The operator <> keeps working:
   $ echo 'let x = <>a</> <> <>b</>' | fmt | fmt
   let x = <>a</> <> <>b</>
 
-The operator </> is reserved for fragments:
+The operator </> keeps working:
 
-  $ echo 'let (</>) a b = a' | fmt
+  $ echo 'let (</>) a b = a' | fmt | fmt
+  let ( </> ) a b = a
+  $ echo 'let _ = a </> b' | fmt | fmt
+  let _ = a </> b
+  $ echo 'let _ = a</>b' | fmt | fmt
+  let _ = a </> b
+  $ echo 'let _ = ( </> ) a b' | fmt | fmt
+  let _ = a </> b
+  $ echo 'let _ = M.(</>)' | fmt | fmt
+  let _ = M.( </> )
+  $ echo 'let _ = <>(a + b)</>' | fmt | fmt
+  let _ = <>(a + b)</>
+  $ echo 'let _ = <>(a </> b)</>' | fmt | fmt
+  let _ = <>(a </> b)</>
+  $ echo 'let _ = a </> <>b</>' | fmt | fmt
+  let _ = a </> <>b</>
+  $ echo 'let _ = <>a</> </> <>b</>' | fmt | fmt
+  let _ = <>a</> </> <>b</>
+  $ echo 'let _ = a </> <div />' | fmt | fmt
+  let _ = a </> <div />
+  $ echo 'let _ = aaaaaaaaaaaaaaaaaaaa </> bbbbbbbbbbbbbbbbbbbbbbb </> cccccccccccccccccccccc </> dddddddddddddddddddd </> eeeeeeeeeeeeeeeeeeee' | fmt | fmt
+  let _ =
+    aaaaaaaaaaaaaaaaaaaa </> bbbbbbbbbbbbbbbbbbbbbbb </> cccccccccccccccccccccc
+    </> dddddddddddddddddddd </> eeeeeeeeeeeeeeeeeeee
+  $ echo 'let _ = <>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</> </> <>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</> </> <>cccccccccccccccccccccccc</>' | fmt | fmt
+  let _ =
+    <>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</>
+    </> <>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</>
+    </> <>cccccccccccccccccccccccc</>
+
+A </> after fragment children closes the fragment:
+
+  $ echo 'let _ = <>a </> b</>' | fmt
   ocamlformat-mlx: ignoring "<standard input>" (syntax error)
-  File "<standard input>", line 1, characters 5-8:
-  1 | let (</>) a b = a
-           ^^^
-  Error: Syntax error: "operator "</>" (reserved for JSX fragments)" not expected.
-  [1]
-  $ echo 'let x = a </> b' | fmt
-  ocamlformat-mlx: ignoring "<standard input>" (syntax error)
-  File "<standard input>", line 1, characters 10-13:
-  1 | let x = a </> b
-                ^^^
-  Error: Syntax error: "operator "</>" (reserved for JSX fragments)" not expected.
-  [1]
-  $ echo 'let x = ( </> )' | fmt
-  ocamlformat-mlx: ignoring "<standard input>" (syntax error)
-  File "<standard input>", line 1, characters 10-13:
-  1 | let x = ( </> )
-                ^^^
-  Error: Syntax error: "operator "</>" (reserved for JSX fragments)" not expected.
+  File "<standard input>", line 2, characters 0-0:
+  Error: Syntax error
   [1]
