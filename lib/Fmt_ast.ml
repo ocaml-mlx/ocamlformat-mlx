@@ -2363,13 +2363,18 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
            [@JSX] attribute's whole-element location ([jsx_loc]); emit them
            here since the attribute is rendered as JSX syntax rather than as
            a regular attribute. *)
+        let is_fragment = String.is_empty tag in
         let self_closing =
           match children with
           | Jsx.Children [] -> not (Cmts.has_after c.cmts children_loc)
           | _ -> false
         in
-        let tag_parens =
+        let element_parens =
           match ctx0 with
+          | Exp ({pexp_desc= Pexp_apply (_, args); _} as app) ->
+              is_fragment
+              && (not (is_jsx_element c app))
+              && List.exists args ~f:(fun (_, arg) -> phys_equal arg exp)
           | Exp {pexp_desc= Pexp_prefix (_, e); _} -> phys_equal e exp
           | Exp
               { pexp_desc=
@@ -2377,21 +2382,16 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                   | Pexp_setfield (e, _, _)
                   | Pexp_indexop_access {pia_lhs= e; _} )
               ; _ } ->
-              phys_equal e exp && not self_closing
-          | _ -> false
-        in
-        let fragment_arg =
-          String.is_empty tag
-          &&
-          match ctx0 with
-          | Exp {pexp_desc= Pexp_apply (_, args); _} ->
-              List.exists args ~f:(fun (lbl, arg) ->
-                  phys_equal arg exp
-                  && match lbl with Nolabel -> true | _ -> false )
+              phys_equal e exp && (is_fragment || not self_closing)
+          | Exp
+              { pexp_desc=
+                  Pexp_construct (_, Some e) | Pexp_variant (_, Some e)
+              ; _ } ->
+              is_fragment && phys_equal e exp
           | _ -> false
         in
         pro
-        $ Params.parens_if (tag_parens || fragment_arg) c.conf
+        $ Params.parens_if element_parens c.conf
           @@ Cmts.fmt c jsx_loc
           @@ begin match children with
           | Jsx.Children [] when not (Cmts.has_after c.cmts children_loc) ->

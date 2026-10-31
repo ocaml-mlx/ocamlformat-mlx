@@ -127,9 +127,48 @@ Function argument (a fragment needs parentheses, a tag does not):
   let x = f x <div>a</div>
 
   $ echo 'let x = f ~a:(<>a</>) (<>b</>)' | fmt | fmt
-  let x = f ~a:<>a</> (<>b</>)
+  let x = f ~a:(<>a</>) (<>b</>)
+  $ echo 'let x = f ?a:(<>a</>) (<>b</>)' | fmt | fmt
+  let x = f ?a:(<>a</>) (<>b</>)
   $ echo 'let x = f ~a:(<div>a</div>) (<div>b</div>)' | fmt | fmt
   let x = f ~a:<div>a</div> <div>b</div>
+
+  $ echo 'let x = Some (<>a</>)' | fmt | fmt
+  let x = Some (<>a</>)
+  $ echo 'let x = `A (<>a</>)' | fmt | fmt
+  let x = `A (<>a</>)
+
+Field access, indexing and prefix operators (a fragment needs parentheses):
+  $ echo 'let x = (<>a</>).x' | fmt | fmt
+  let x = (<>a</>).x
+  $ echo 'let x = (<></>).x' | fmt | fmt
+  let x = (<></>).x
+  $ echo 'let x = (<div />).x' | fmt | fmt
+  let x = <div />.x
+  $ echo 'let x = (<>a</>).(0)' | fmt | fmt
+  let x = (<>a</>).(0)
+  $ echo 'let x = (<>a</>).[0]' | fmt | fmt
+  let x = (<>a</>).[0]
+  $ echo 'let x = !(<>a</>)' | fmt | fmt
+  let x = !(<>a</>)
+  $ echo 'let x = - (<>a</>)' | fmt | fmt
+  let x = -(<>a</>)
+
+Infix operators, method calls and application (no parentheses needed):
+  $ echo 'let x = (<>a</>) |> f' | fmt | fmt
+  let x = <>a</> |> f
+  $ echo 'let x = (<div>a</div>) |> f' | fmt | fmt
+  let x = <div>a</div> |> f
+  $ echo 'let x = (<>a</>)#m' | fmt | fmt
+  let x = <>a</>#m
+  $ echo 'let x = (<div>a</div>)#m' | fmt | fmt
+  let x = <div>a</div>#m
+  $ echo 'let x = (<>a</>) b' | fmt | fmt
+  let x = <>a</> b
+  $ echo 'let x = (<div>a</div>) b' | fmt | fmt
+  let x = <div>a</div> b
+  $ echo 'let x = <div l=(<>a</>)>b</div>' | fmt | fmt
+  let x = <div l=(<>a</>)>b</div>
 
 Comments:
   $ echo 'let x = <> (* c *) a</>' | fmt | fmt
