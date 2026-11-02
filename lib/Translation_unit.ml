@@ -386,6 +386,9 @@ let parse_and_format (type ext std) (ext_fg : ext Extended_ast.t)
     (std_fg : std Std_ast.t) ?output_file ~input_name ~source (conf : Conf.t)
     =
   Location.input_name := input_name ;
+  let mlx = Option.is_none (Syntax.of_fname input_name) in
+  Lexer.mlx := mlx ;
+  Ocamlformat_parser_standard.Lexer.mlx := mlx ;
   let line_endings = conf.fmt_opts.line_endings.v in
   let* ext_parsed =
     parse_result (parse_ast conf) ~disable_w50:true ext_fg conf ~source
