@@ -1,1 +1,6 @@
-(data_only_dirs rpc passing failing disabled projects unit)
+(data_only_dirs rpc)
+
+(env
+ (_
+  (binaries
+   (../bin/ocamlformat/ocamlformat.exe as ocamlformat))))

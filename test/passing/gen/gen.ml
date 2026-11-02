@@ -107,7 +107,7 @@ let emit_test test_name setup =
     {|
 (rule
  (deps .ocamlformat)%s
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (action
   (with-stdout-to %s
    (with-stderr-to %s.stderr
@@ -115,12 +115,12 @@ let emit_test test_name setup =
 
 (rule
  (alias runtest)%s
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (action (diff %s %s.stdout)))
 
 (rule
  (alias runtest)%s
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (action (diff %s %s.stderr)))
 |}
     enabled_if_line output_fname test_name

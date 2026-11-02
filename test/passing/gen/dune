@@ -4,7 +4,7 @@
 (rule
  (deps
   (source_tree ../tests))
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (enabled_if
   (<> %{os_type} Win32))
  (action
@@ -14,7 +14,7 @@
 
 (rule
  (alias runtest)
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (enabled_if
   (<> %{os_type} Win32))
  (action
