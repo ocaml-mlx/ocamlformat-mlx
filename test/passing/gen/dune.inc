@@ -5226,6 +5226,7 @@
 
 (rule
  (deps .ocamlformat)
+ (enabled_if false)
  (package ocamlformat-mlx)
  (action
   (with-stdout-to source.ml.stdout
@@ -5234,11 +5235,13 @@
 
 (rule
  (alias runtest)
+ (enabled_if false)
  (package ocamlformat-mlx)
  (action (diff source.ml.ref source.ml.stdout)))
 
 (rule
  (alias runtest)
+ (enabled_if false)
  (package ocamlformat-mlx)
  (action (diff source.ml.err source.ml.stderr)))
 

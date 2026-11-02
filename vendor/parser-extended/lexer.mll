@@ -182,12 +182,6 @@ let in_comment () = !comment_start_loc <> []
 let is_in_string = ref false
 let in_string () = !is_in_string
 let print_warnings = ref true
-let mlx = ref false
-
-let rewind lexbuf =
-  lexbuf.lex_curr_pos <- lexbuf.lex_start_pos;
-  lexbuf.lex_curr_p <- lexbuf.lex_start_p;
-  lexbuf
 
 (* Escaped chars are interpreted in strings unless they are in comments. *)
 let store_escaped_char lexbuf c =
@@ -588,13 +582,13 @@ rule token = parse
   | lowercase identchar * as name
       { find_keyword lexbuf name }
   | "<" raw_ident_escape (lowercase identchar * as name)
-      { if !mlx then JSX_LIDENT ("\\#" ^ name) else ml_operator (rewind lexbuf) }
+      { JSX_LIDENT ("\\#" ^ name) }
   | "<" (lowercase identchar * as name)
-      { if !mlx then JSX_LIDENT name else ml_operator (rewind lexbuf) }
+      { JSX_LIDENT name }
   | "<" "/" raw_ident_escape (lowercase identchar * as name)
-      { if !mlx then JSX_LIDENT_E ("\\#" ^ name) else ml_operator (rewind lexbuf) }
+      { JSX_LIDENT_E ("\\#" ^ name) }
   | "<" "/" (lowercase identchar * as name)
-      { if !mlx then JSX_LIDENT_E name else ml_operator (rewind lexbuf) }
+      { JSX_LIDENT_E name }
   | uppercase identchar * as name
       { UIDENT name } (* No capitalized keywords *)
   | (raw_ident_escape? as escape) (ident_ext as raw_name)
@@ -610,9 +604,9 @@ rule token = parse
           LIDENT (escape ^ name)
       } (* No non-ascii keywords *)
   | "<" (uppercase identchar * as name)
-      { if !mlx then JSX_UIDENT name else ml_operator (rewind lexbuf) }
+      { JSX_UIDENT name }
   | "<" "/" (uppercase identchar * as name)
-      { if !mlx then JSX_UIDENT_E name else ml_operator (rewind lexbuf) }
+      { JSX_UIDENT_E name }
   | int_literal as lit { INT (lit, None) }
   | (int_literal as lit) (literal_modifier as modif)
       { INT (lit, Some modif) }
@@ -729,7 +723,7 @@ rule token = parse
   | "->" { MINUSGREATER }
   | "."  { DOT }
   | ".." { DOTDOT }
-  | "..." { if !mlx then DOTDOTDOT else ml_operator (rewind lexbuf) }
+  | "..." { DOTDOTDOT }
   | "." (dotsymbolchar symbolchar* as op) { DOTOP op }
   | ":"  { COLON }
   | "::" { COLONCOLON }
@@ -739,10 +733,10 @@ rule token = parse
   | ";;" { SEMISEMI }
   | "<"  { LESS }
   (* | "</" { LESSSLASH } *)
-  | "<>" { if !mlx then LESSGREATER else ml_operator (rewind lexbuf) }
-  | "</>" { if !mlx then LESSSLASHGREATER else ml_operator (rewind lexbuf) }
+  | "<>" { LESSGREATER }
+  | "</>" { LESSSLASHGREATER }
   | "<-" { LESSMINUS }
-  | "="  { if !mlx then EQUAL else ml_operator (rewind lexbuf) }
+  | "="  { EQUAL }
   | "["  { LBRACKET }
   | "[|" { LBRACKETBAR }
   | "[<" { LBRACKETLESS }
@@ -753,27 +747,25 @@ rule token = parse
   | "|"  { BAR }
   | "||" { BARBAR }
   | "|]" { BARRBRACKET }
-  | ">"  { if !mlx then GREATER else ml_operator (rewind lexbuf) }
-  | "/>" { if !mlx then SLASHGREATER else ml_operator (rewind lexbuf) }
+  | ">"  { GREATER }
+  | "/>" { SLASHGREATER }
   | "}"  { RBRACE }
   | ">" (blank | newline)* "}"
-      { if not !mlx then ml_operator (rewind lexbuf) else begin
-        (* Keep the closer distinct from infix ">", but leave "}" for the enclosing record, object override, or indexing expression. *)
+      { (* Keep the closer distinct from infix ">", but leave "}" for the enclosing record, object override, or indexing expression. *)
         lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
         let lex_start_p = lexbuf.lex_start_p in
         lexbuf.lex_curr_p <-
           { lex_start_p with pos_cnum = lex_start_p.pos_cnum + 1 };
         GREATER_BEFORE_RBRACE
-      end }
+      }
   | ">|]"
-      { if not !mlx then ml_operator (rewind lexbuf) else begin
-        (* the dialect gives ">" back so the closing "|]" lexes separately as BARRBRACKET *)
+      { (* the dialect gives ">" back so the closing "|]" lexes separately as BARRBRACKET *)
         lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
         let lex_start_p = lexbuf.lex_start_p in
         lexbuf.lex_curr_p <-
           { lex_start_p with pos_cnum = lex_start_p.pos_cnum + 1 };
         GREATER
-      end }
+      }
   | "[@" { LBRACKETAT }
   | "[@@"  { LBRACKETATAT }
   | "[@@@" { LBRACKETATATAT }
@@ -803,18 +795,16 @@ rule token = parse
               let starts_child i =
                 i < n && (op.[i] = '<' || (op.[i] = '.' && i + 2 < n && op.[i+1] = '.' && op.[i+2] = '.'))
               in
-              if not !mlx then INFIXOP0 op
-              else if n > 2 && op.[0] = '<' && op.[1] = '>' && starts_child 2 then keep 2 LESSGREATER
+              if n > 2 && op.[0] = '<' && op.[1] = '>' && starts_child 2 then keep 2 LESSGREATER
               else if n > 3 && op.[0] = '<' && op.[1] = '/' && op.[2] = '>' && starts_child 3
               then keep 3 LESSSLASHGREATER
               else INFIXOP0 op
             }
   | '=' symbolchar_no_prefix * as op
-            { if !mlx then INFIXOP0 op else ml_operator (rewind lexbuf) }
+            { INFIXOP0 op }
   | ">" symbolchar_no_less * as op
             { (* ops starting with ">..." are reserved for children spread, ">" is given back so "..." lexes separately *)
-              if not !mlx then ml_operator (rewind lexbuf)
-              else if String.length op >= 4
+              if String.length op >= 4
                  && op.[1] = '.' && op.[2] = '.' && op.[3] = '.'
               then begin
                 lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
@@ -836,7 +826,7 @@ rule token = parse
   | ['*' '%'] symbolchar * as op
             { INFIXOP3 op }
   | "/" symbolchar_no_greater * as op
-            { if !mlx then INFIXOP3 op else ml_operator (rewind lexbuf) }
+            { INFIXOP3 op }
   | '#' symbolchar_or_hash + as op
             { HASHOP op }
   | "let" kwdopchar dotsymbolchar * as op
@@ -846,27 +836,6 @@ rule token = parse
   | eof { EOF }
   | (_ as illegal_char)
       { error lexbuf (Illegal_character illegal_char) }
-
-and ml_operator = parse
-  | "."  { DOT }
-  | ".." { DOTDOT }
-  | "." (dotsymbolchar symbolchar* as op) { DOTOP op }
-  | "<"  { LESS }
-  | "<-" { LESSMINUS }
-  | "="  { EQUAL }
-  | ">"  { GREATER }
-  | ">]" { GREATERRBRACKET }
-  | ">}"
-      { lexbuf.lex_curr_pos <- lexbuf.lex_start_pos + 1;
-        lexbuf.lex_curr_p <-
-          { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_start_p.pos_cnum + 1 };
-        GREATER_BEFORE_RBRACE
-      }
-  | ['=' '<' '>' '|' '&' '$'] symbolchar * as op
-            { INFIXOP0 op }
-  | '/'     { SLASH }
-  | ['*' '/' '%'] symbolchar * as op
-            { INFIXOP3 op }
 
 and directive = parse
   | ([' ' '\t']* (['0'-'9']+ as _num) [' ' '\t']*
@@ -1069,7 +1038,7 @@ and skip_hash_bang = parse
 
   let token_with_comments lexbuf =
     match token_with_comments lexbuf with
-    | LBRACKETLESS when !mlx ->
+    | LBRACKETLESS ->
       (* Check if the next character (if any) could start an identifier.
          UIDENT starts with A-Z, LIDENT starts with a-z or _ *)
       let should_split =

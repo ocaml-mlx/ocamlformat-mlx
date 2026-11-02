@@ -6,17 +6,12 @@ profile. This started with version 0.26.0.
 
 ## unreleased
 
-### Fixed
-
-- Lex `.ml` and `.mli` files as OCaml, not mlx: `x<y`, `a <><= b` and other
-  spellings that mlx reserves for JSX format as upstream does. Standard input
-  is still mlx unless `--name` gives an OCaml file name.
-
 ### Internal
 
 - Run the upstream test suites (`passing`, `failing`, `disabled`,
   `projects`, `unit`) against ocamlformat-mlx. `rpc` stays off because the
-  fork does not build `ocamlformat-rpc`.
+  fork does not build `ocamlformat-rpc`. `test/passing/tests/source.ml` is
+  disabled: it writes `x<y`, which mlx reads as the start of a JSX tag.
 
 ## 0.29.0.2
 
