@@ -1,5 +1,9 @@
 (data_only_dirs rpc)
 
+; Upstream's test suites call "ocamlformat", so the fork's binary is renamed
+; to "ocamlformat" here. Dune puts it first on PATH, ahead of an ocamlformat
+; installed in the opam switch.
+
 (env
  (_
   (binaries
