@@ -5226,24 +5226,21 @@
 
 (rule
  (deps .ocamlformat)
- (enabled_if false)
  (package ocamlformat-mlx)
  (action
-  (with-stdout-to source.ml.stdout
-   (with-stderr-to source.ml.stderr
-     (run %{bin:ocamlformat} --name source.ml --margin-check --max-iters=3 --ocaml-version=5.3 %{dep:../tests/source.ml})))))
+  (with-stdout-to source.mlx.stdout
+   (with-stderr-to source.mlx.stderr
+     (run %{bin:ocamlformat} --name source.mlx --margin-check --max-iters=3 --ocaml-version=5.3 %{dep:../tests/source.mlx})))))
 
 (rule
  (alias runtest)
- (enabled_if false)
  (package ocamlformat-mlx)
- (action (diff source.ml.ref source.ml.stdout)))
+ (action (diff source.mlx.ref source.mlx.stdout)))
 
 (rule
  (alias runtest)
- (enabled_if false)
  (package ocamlformat-mlx)
- (action (diff source.ml.err source.ml.stderr)))
+ (action (diff source.mlx.err source.mlx.stderr)))
 
 (rule
  (deps .ocamlformat)

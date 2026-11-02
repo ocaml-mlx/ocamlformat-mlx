@@ -10,8 +10,9 @@ profile. This started with version 0.26.0.
 
 - Run the upstream test suites (`passing`, `failing`, `disabled`,
   `projects`, `unit`) against ocamlformat-mlx. `rpc` stays off because the
-  fork does not build `ocamlformat-rpc`. `test/passing/tests/source.ml` is
-  disabled: it writes `x<y`, which mlx reads as the start of a JSX tag.
+  fork does not build `ocamlformat-rpc`. `test/passing/tests/source.ml` runs
+  as `source.mlx`, with its two `x<y` written `x < y`, because mlx reads
+  `<y` as the start of a JSX tag.
 
 ## 0.29.0.2
 

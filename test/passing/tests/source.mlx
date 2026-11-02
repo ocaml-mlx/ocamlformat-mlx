@@ -1957,7 +1957,7 @@ let ex2 = Pair (ex1, Const 1)
 let rec eval_term : type a. a term -> a = function
   | Const x -> x
   | Add -> fun (x,y) -> x+y
-  | LT  -> fun (x,y) -> x<y
+  | LT  -> fun (x,y) -> x < y
   | Ap(f,x) -> eval_term f (eval_term x)
   | Pair(x,y) -> (eval_term x, eval_term y)
 
@@ -2018,7 +2018,7 @@ let rec eval_term : type a. assoc list -> a term -> a =
   | Abs (x, r, e) -> fun v -> eval_term (Assoc (x, r, v) :: env) e
   | Const x -> x
   | Add -> fun (x,y) -> x+y
-  | LT  -> fun (x,y) -> x<y
+  | LT  -> fun (x,y) -> x < y
   | Ap(f,x) -> eval_term env f (eval_term env x)
   | Pair(x,y) -> (eval_term env x, eval_term env y)
 ;;
