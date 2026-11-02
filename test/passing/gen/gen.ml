@@ -129,6 +129,7 @@ let emit_test test_name setup =
        (["%{bin:ocamlformat}"] @ opts @ [dep base_test_name]) )
     enabled_if_line (ref_file ".ref") test_name enabled_if_line
     (ref_file ".err") test_name ;
+  (* ocamlformat-mlx formats .mlx files, so each .ml test also runs as .mlx. *)
   if Filename.extension test_name = ".ml" then
     let mlx_name = test_name ^ "x" in
     Printf.printf
