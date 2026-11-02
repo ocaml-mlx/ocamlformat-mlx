@@ -50,7 +50,7 @@ let add_test ?base_file map src_test_name =
 let register_file tests fname =
   match String.split_on_char '.' fname with
   | test_name
-    :: (("ml" | "mli" | "mlt" | "mld" | "eliom" | "eliomi") as ext)
+    :: (("ml" | "mli" | "mlt" | "mld" | "mlx" | "eliom" | "eliomi") as ext)
     :: rest -> (
       let fname = input_dir ^ fname in
       let src_test_name = test_name ^ "." ^ ext in
@@ -85,14 +85,15 @@ let cmd should_fail args =
   else spf {|(run %s)|} cmd_string
 
 let emit_test test_name setup =
-  let opts =
+  let opts_for name =
     (* Pass a relative file name to [--name] so that the right config is
        picked in [refs.*/.ocamlformat], this is not the input path. *)
-    "--name" :: test_name :: "--margin-check"
+    "--name" :: name :: "--margin-check"
     ::
     ( if setup.has_opts then read_lines (spf "%s/%s.opts" input_dir test_name)
       else [] )
   in
+  let opts = opts_for test_name in
   let ref_file ext = test_name ^ ext in
   let base_test_name =
     input_dir ^ match setup.base_file with Some n -> n | None -> test_name
@@ -107,7 +108,7 @@ let emit_test test_name setup =
     {|
 (rule
  (deps .ocamlformat)%s
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (action
   (with-stdout-to %s
    (with-stderr-to %s.stderr
@@ -115,19 +116,41 @@ let emit_test test_name setup =
 
 (rule
  (alias runtest)%s
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (action (diff %s %s.stdout)))
 
 (rule
  (alias runtest)%s
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (action (diff %s %s.stderr)))
 |}
     enabled_if_line output_fname test_name
     (cmd setup.should_fail
        (["%{bin:ocamlformat}"] @ opts @ [dep base_test_name]) )
     enabled_if_line (ref_file ".ref") test_name enabled_if_line
-    (ref_file ".err") test_name
+    (ref_file ".err") test_name ;
+  (* ocamlformat-mlx formats .mlx files, so .ml tests also run as .mlx. *)
+  if Filename.extension test_name = ".ml" then
+    let mlx_name = test_name ^ "x" in
+    Printf.printf
+      {|
+(rule
+ (deps .ocamlformat)%s
+ (package ocamlformat-mlx)
+ (action
+  (with-stdout-to %s.stdout
+   (with-stderr-to %s.stderr
+     %s))))
+
+(rule
+ (alias runtest)%s
+ (package ocamlformat-mlx)
+ (action (diff %s %s.stdout)))
+|}
+      enabled_if_line mlx_name mlx_name
+      (cmd setup.should_fail
+         (["%{bin:ocamlformat}"] @ opts_for mlx_name @ [dep base_test_name]) )
+      enabled_if_line (ref_file ".ref") mlx_name
 
 let () =
   let map = ref StringMap.empty in

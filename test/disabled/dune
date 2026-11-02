@@ -2,7 +2,7 @@
  (alias runtest)
  (deps
   (source_tree dir1))
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (enabled_if
   (<> %{os_type} Win32))
  (action
@@ -12,7 +12,7 @@
  (alias runtest)
  (deps
   (source_tree dir1))
- (package ocamlformat)
+ (package ocamlformat-mlx)
  (enabled_if
   (<> %{os_type} Win32))
  (action
