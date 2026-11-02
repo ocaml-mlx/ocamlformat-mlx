@@ -20,6 +20,10 @@ profile. This started with version 0.26.0.
 
 ### Fixed
 
+- Keep the parentheses around a JSX element under field access, index
+  access and prefix operators, such as `(<div>a</div>).x` and
+  `!(<div />)`, instead of failing with "Cannot process" (#28)
+
 - Restore parsing and formatting of unparenthesized object-override field
   expressions, including comparisons, boolean operators, conditionals, and
   local bindings, while preserving JSX elements closed directly before `}`.
