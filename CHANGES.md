@@ -13,6 +13,10 @@ profile. This started with version 0.26.0.
   application now also prints as a spread instead of a raw application
   (#16, ocaml-mlx/mlx#45)
 
+- Support mlx JSX fragments: `<></>`, `<>a b</>` and `<>...xs</>` parse and
+  format like a regular tag such as `<div>`. `<>` and `</>` stay valid infix
+  operators (#27, ocaml-mlx/mlx#48)
+
 ### Changed
 
 - Empty bodies of while loops will be formatted on one line: `do () done`.

@@ -68,7 +68,8 @@ module String_id = struct
          (String.lfindi s ~pos:3 ~f:(fun _ c -> not (Char_id.is_kwdop c)))
 
   let is_infix i =
-    if Char_id.is_infixop i.[0] then true
+    if String.is_empty i then false
+    else if Char_id.is_infixop i.[0] then true
     else
       match i with
       | "!=" | "land" | "lor" | "lxor" | "mod" | "::" | ":=" | "asr"
