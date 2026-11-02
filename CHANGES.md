@@ -12,7 +12,8 @@ profile. This started with version 0.26.0.
   `projects`, `unit`) against ocamlformat-mlx. `rpc` stays off because the
   fork does not build `ocamlformat-rpc`. `test/passing/tests/source.ml` runs
   as `source.mlx`, with its two `x<y` written `x < y`, because mlx reads
-  `<y` as the start of a JSX tag.
+  `<y` as the start of a JSX tag. Every `.ml` test in `test/passing` also
+  runs under a `.mlx` name and must give the same output.
 
 ## 0.29.0.2
 
