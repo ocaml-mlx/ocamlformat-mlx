@@ -244,6 +244,28 @@ JSX in function calls:
   $ echo 'let _ = ReactDOM.render <div /> container' | fmt
   let _ = ReactDOM.render <div /> container
 
+JSX under field access, index access and prefix operators:
+  $ echo 'let _ = (<div>a</div>).x' | fmt
+  let _ = (<div>a</div>).x
+  $ echo 'let _ = (<div>a</div>).x <- 1' | fmt
+  let _ = (<div>a</div>).x <- 1
+  $ echo 'let _ = (<div>a</div>).(0)' | fmt
+  let _ = (<div>a</div>).(0)
+  $ echo 'let _ = (<div>a</div>).[0]' | fmt
+  let _ = (<div>a</div>).[0]
+  $ echo 'let _ = (<div>a</div>).%(0)' | fmt
+  let _ = (<div>a</div>).%(0)
+  $ echo 'let _ = !(<div>a</div>)' | fmt
+  let _ = !(<div>a</div>)
+  $ echo 'let _ = - (<div>a</div>)' | fmt
+  let _ = -(<div>a</div>)
+  $ echo 'let _ = !(<div />)' | fmt
+  let _ = !(<div />)
+  $ echo 'let _ = (<div />).x' | fmt
+  let _ = <div />.x
+  $ echo 'let _ = (<div>a</div>) |> f' | fmt
+  let _ = <div>a</div> |> f
+
 JSX in arrays:
   $ echo 'let _ = [|<div />; <span />|]' | fmt
   let _ = [| <div />; <span /> |]
