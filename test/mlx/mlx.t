@@ -50,7 +50,7 @@ Prop wrapping with comments:
       (* this className is nice *)
       className="some"
       className="another"
-                (* this className is not *)
+      (* this className is not *)
       className="third"
     />
   </body>
