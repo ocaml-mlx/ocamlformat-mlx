@@ -2346,14 +2346,15 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                        [fmt_expression] below prints it. *)
                     flabel
                 | _ ->
-                    let cmts_after =
-                      if is_jsx_element c e then noop
-                      else Cmts.fmt_after c e.pexp_loc
-                    in
-                    let value =
+                    let cmts_after, value =
                       if is_jsx_element c e then
-                        str "(" $ fmt_expression c (sub_exp ~ctx e) $ str ")"
-                      else fmt_expression c (sub_exp ~ctx e)
+                        ( noop
+                        , str "("
+                          $ fmt_expression c (sub_exp ~ctx e)
+                          $ str ")" )
+                      else
+                        let cmts_after = Cmts.fmt_after c e.pexp_loc in
+                        (cmts_after, fmt_expression c (sub_exp ~ctx e))
                     in
                     let sep =
                       match e.pexp_desc with

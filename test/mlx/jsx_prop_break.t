@@ -97,3 +97,38 @@ indented by 2 from the prop name. Short values and punned props are unchanged:
       />
     </Outer>
   $ fmt < out5.mlx | diff out5.mlx -
+
+  $ cat > in6.mlx <<'EOT'
+  > let g = <button onClick=(fun _ -> let x = compute_something_long () in foo x; bar x; baz x) />
+  > EOT
+  $ fmt < in6.mlx > out6.mlx; cat out6.mlx
+  let g =
+    <button
+      onClick=
+        (fun _ ->
+            let x = compute_something_long () in
+            foo x;
+            bar x;
+            baz x)
+    />
+  $ fmt < out6.mlx | diff out6.mlx -
+
+  $ cat > in7.mlx <<'EOT'
+  > let h = <Foo icon=(<Icon name="some-long-icon-name" size=Large color=Primary className="aaa" />) />
+  > EOT
+  $ fmt < in7.mlx > out7.mlx; cat out7.mlx
+  let h =
+    <Foo
+      icon=
+        (<Icon
+           name="some-long-icon-name" size=Large color=Primary className="aaa"
+         />)
+    />
+  $ fmt < out7.mlx | diff out7.mlx -
+
+  $ cat > in8.mlx <<'EOT'
+  > let i = <Foo a=(f x) (* note *) b=(g y) />
+  > EOT
+  $ fmt < in8.mlx > out8.mlx; cat out8.mlx
+  let i = <Foo a=(f x) (* note *) b=(g y) />
+  $ fmt < out8.mlx | diff out8.mlx -

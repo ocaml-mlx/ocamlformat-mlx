@@ -4,6 +4,14 @@ Items marked with an asterisk (\*) are changes that are likely to format
 existing code differently from the previous release when using the default
 profile. This started with version 0.26.0.
 
+## unreleased
+
+### Changed
+
+- \* Break a JSX prop value that does not fit on its line after `name=` and
+  indent it by 2 from the prop name, instead of hanging it after
+  `name=(`. A comment after a prop value stays at the prop column (#30)
+
 ## 0.29.0.2
 
 ### Added
