@@ -2346,11 +2346,22 @@ and fmt_expression c ?(box = true) ?(pro = noop) ?eol ?parens
                        [fmt_expression] below prints it. *)
                     flabel
                 | _ ->
-                    if is_jsx_element c e then
-                      flabel $ str "=("
-                      $ fmt_expression c (sub_exp ~ctx e)
-                      $ str ")"
-                    else flabel $ str "=" $ fmt_expression c (sub_exp ~ctx e)
+                    let cmts_after, value =
+                      if is_jsx_element c e then
+                        ( noop
+                        , str "("
+                          $ fmt_expression c (sub_exp ~ctx e)
+                          $ str ")" )
+                      else
+                        let cmts_after = Cmts.fmt_after c e.pexp_loc in
+                        (cmts_after, fmt_expression c (sub_exp ~ctx e))
+                    in
+                    let sep =
+                      match e.pexp_desc with
+                      | Pexp_constant _ | Pexp_ident _ -> noop
+                      | _ -> break 0 0
+                    in
+                    hvbox 2 (flabel $ str "=" $ sep $ value) $ cmts_after
               in
               let fmt_prop = function
                 | Nolabel, _ -> assert false (* excluded by classification *)
