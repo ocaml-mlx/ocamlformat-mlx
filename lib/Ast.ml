@@ -224,15 +224,22 @@ module Pat = struct
     | Ppat_cons pl when List.for_all pl ~f:is_any -> true
     | _ -> false
 
-  let has_trailing_attributes {ppat_desc; ppat_attributes; _} =
+  (** Patterns that don't need parentheses. *)
+  let is_safe {ppat_desc; _} =
     match ppat_desc with
-    | Ppat_construct (_, None)
-     |Ppat_constant _ | Ppat_any | Ppat_var _
+    | Ppat_any | Ppat_var _ | Ppat_constant _ | Ppat_interval _
+     |Ppat_construct (_, None)
      |Ppat_variant (_, None)
-     |Ppat_record _ | Ppat_array _ | Ppat_list _ | Ppat_type _
-     |Ppat_unpack _ | Ppat_extension _ | Ppat_open _ | Ppat_interval _ ->
-        false
-    | _ -> List.exists ppat_attributes ~f:(Fn.non Attr.is_doc)
+     |Ppat_type _ | Ppat_record _ | Ppat_list _ | Ppat_array _
+     |Ppat_unpack _ | Ppat_extension _ | Ppat_open _ ->
+        true
+    | _ -> false
+
+  (** Whether an attribute is printed after the pattern, where it would be
+      parsed as part of an enclosing pattern. *)
+  let has_trailing_attributes ({ppat_attributes; _} as pat) =
+    (not (is_safe pat))
+    && List.exists ppat_attributes ~f:(Fn.non Attr.is_doc)
 end
 
 let doc_atrs ?(acc = []) atrs =
@@ -352,7 +359,8 @@ module Structure_item = struct
      |Pstr_modtype {pmtd_ext_attrs= ea; _}
      |Pstr_type (_, {ptype_attributes= ea; _} :: _)
      |Pstr_value {pvbs_bindings= {pvb_attributes= ea; _} :: _; _}
-     |Pstr_primitive {pval_attributes= ea; _}
+     |Pstr_val {pval_attributes= ea; _}
+     |Pstr_primitive {pprim_attributes= ea; _}
      |Pstr_typext {ptyext_attributes= ea; _} ->
         Ext_attrs.has_doc ea
     | Pstr_module
@@ -400,7 +408,7 @@ module Structure_item = struct
       match (itmI.pstr_desc, itmJ.pstr_desc) with
       | Pstr_eval _, Pstr_eval _
        |Pstr_value _, Pstr_value _
-       |Pstr_primitive _, Pstr_primitive _
+       |(Pstr_val _ | Pstr_primitive _), (Pstr_val _ | Pstr_primitive _)
        |(Pstr_type _ | Pstr_typext _), (Pstr_type _ | Pstr_typext _)
        |Pstr_exception _, Pstr_exception _
        |( (Pstr_module _ | Pstr_recmodule _ | Pstr_open _ | Pstr_include _)
@@ -439,6 +447,7 @@ module Signature_item = struct
     | Psig_attribute atr -> Attr.is_doc atr
     | Psig_extension (_, atrs) -> List.exists ~f:Attr.is_doc atrs
     | Psig_value {pval_attributes= ea; _}
+     |Psig_primitive {pprim_attributes= ea; _}
      |Psig_type (_, {ptype_attributes= ea; _} :: _)
      |Psig_typesubst ({ptype_attributes= ea; _} :: _)
      |Psig_typext {ptyext_attributes= ea; _}
@@ -486,7 +495,7 @@ module Signature_item = struct
     with
     | `Compact, `Compact -> (
       match (itmI.psig_desc, itmJ.psig_desc) with
-      | Psig_value _, Psig_value _
+      | (Psig_value _ | Psig_primitive _), (Psig_value _ | Psig_primitive _)
        |( (Psig_type _ | Psig_typesubst _ | Psig_typext _)
         , (Psig_type _ | Psig_typesubst _ | Psig_typext _) )
        |Psig_exception _, Psig_exception _
@@ -936,6 +945,11 @@ end = struct
     let check_typexn {ptyexn_constructor; _} =
       check_ext ptyexn_constructor
     in
+    let check_primitive {pprim_kind; _} =
+      match pprim_kind with
+      | Pprim_decl (t1, _) -> typ == t1
+      | Pprim_alias (t1, _) -> Option.exists t1 ~f
+    in
     let check_class_type {pci_expr= {pcty_desc; _}; pci_params; _} =
       List.exists pci_params ~f:(fun (t, _) -> t == typ)
       ||
@@ -1089,6 +1103,7 @@ end = struct
     | Sig ctx -> (
       match ctx.psig_desc with
       | Psig_value {pval_type= t1; _} -> assert (typ == t1)
+      | Psig_primitive pd -> assert (check_primitive pd)
       | Psig_type (_, _) -> assert false
       | Psig_typesubst _ -> assert false
       | Psig_typext typext -> assert (check_typext typext)
@@ -1096,7 +1111,8 @@ end = struct
       | _ -> assert false )
     | Str ctx | Str_exp ctx -> (
       match ctx.pstr_desc with
-      | Pstr_primitive {pval_type= t1; _} -> assert (typ == t1)
+      | Pstr_val {pval_type= t1; _} -> assert (typ == t1)
+      | Pstr_primitive pd -> assert (check_primitive pd)
       | Pstr_type (_, _) -> assert false
       | Pstr_typext typext -> assert (check_typext typext)
       | Pstr_exception ext -> assert (check_typexn ext)
@@ -1483,10 +1499,10 @@ end = struct
             List.exists pvbs_bindings ~f:(fun {pvb_body; _} ->
                 check_fun_body pvb_body ) )
       | Pstr_extension ((_, ext), _) -> assert (check_extensions ext)
-      | Pstr_primitive _ | Pstr_type _ | Pstr_typext _ | Pstr_exception _
-       |Pstr_module _ | Pstr_recmodule _ | Pstr_modtype _ | Pstr_open _
-       |Pstr_class _ | Pstr_class_type _ | Pstr_include _ | Pstr_attribute _
-        ->
+      | Pstr_val _ | Pstr_primitive _ | Pstr_type _ | Pstr_typext _
+       |Pstr_exception _ | Pstr_module _ | Pstr_recmodule _
+       |Pstr_modtype _ | Pstr_open _ | Pstr_class _ | Pstr_class_type _
+       |Pstr_include _ | Pstr_attribute _ ->
           assert false )
     | Mod {pmod_desc= Pmod_unpack (e1, _, _); _} -> assert (e1 == exp)
     | Cl ctx ->
@@ -2067,6 +2083,12 @@ end = struct
       , (Ppat_construct (_, Some _) | Ppat_cons _ | Ppat_variant (_, Some _))
       ) ->
         true
+    | Pat {ppat_desc= Ppat_effect (_, p2); _}, _ when p2 == pat ->
+        not (Pat.is_safe pat)
+    | Pat {ppat_desc= Ppat_effect (p1, _); _}, Ppat_construct _
+      when p1 == pat ->
+        false
+    | Pat {ppat_desc= Ppat_effect _; _}, _ -> true
     | _, Ppat_var _ when List.is_empty pat.ppat_attributes -> false
     | ( ( Exp {pexp_desc= Pexp_let ({pvbs_bindings; _}, _, _); _}
         | Str {pstr_desc= Pstr_value {pvbs_bindings; _}; _} )
@@ -2312,7 +2334,9 @@ end = struct
     in
     let exp_in_sequence lhs rhs exp =
       match (lhs.pexp_desc, exp.pexp_attributes) with
-      | (Pexp_match _ | Pexp_try _), _ :: _ when lhs == exp -> true
+      | (Pexp_match _ | Pexp_try _ | Pexp_struct_item _), _ :: _
+        when lhs == exp ->
+          true
       | _, _ :: _ -> false
       | ( Pexp_extension
             ( _
@@ -2493,18 +2517,16 @@ end = struct
                  Option.exists e0 ~f:(fun x -> x == exp) ) ->
           exposed_right_exp Non_apply exp
           (* Non_apply is perhaps pessimistic *)
-      | Pexp_record (_, Some ({pexp_desc= Pexp_prefix _; _} as e0))
-        when e0 == exp ->
-          (* don't put parens around [!e] in [{ !e with a; b }] *)
-          false
       | Pexp_record
           ( _
           , Some
               ( { pexp_desc=
-                    ( Pexp_ident _ | Pexp_constant _ | Pexp_record _
-                    | Pexp_constraint _ | Pexp_field _ )
+                    ( Pexp_prefix _ | Pexp_ident _ | Pexp_constant _
+                    | Pexp_record _ | Pexp_constraint _ | Pexp_field _
+                    | Pexp_apply _ )
                 ; _ } as e0 ) )
         when e0 == exp ->
+          (* Cases where [x] is not parenthesed in [{ x with f }]. *)
           false
       | Pexp_record (_, Some e0) when e0 == exp -> true
       | Pexp_override fields

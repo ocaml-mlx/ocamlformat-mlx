@@ -16,7 +16,7 @@
 
 **ocamlformat** is a code formatter for OCaml. It comes with opinionated default settings but is also fully customizable to suit your coding style.
 
-- **Profiles:** ocamlformat offers profiles we predefined formatting configurations. Profiles include `default`, `ocamlformat`, `janestreet`.
+- **Profiles:** ocamlformat offers profiles we predefined formatting configurations. Profiles include `default`, `ocamlformat`, `janestreet` and `ocsigen`.
 - **Configurable:** Users can change the formatting profile and configure every option in their `.ocamlformat` configuration file.
 - **Format Comments:** ocamlformat can format comments, docstrings, and even code blocks in your comments.
 - **RPC:** ocamlformat provides an RPC server that can bed used by other tools to easily format OCaml Code.
@@ -47,7 +47,7 @@ To configure ocamlformat to your liking, create an `.ocamlformat` configuration 
 
 ```
 profile = default
-version = 0.29.0
+version = 0.30.0
 ```
 
 Refer to our [documentation](https://ocaml.org/p/ocamlformat/latest/doc/index.html) or use `ocamlformat --help` for a full list of configuration options.
@@ -96,6 +96,6 @@ ocamlformat is distributed under the terms of the MIT License. See the [LICENSE]
 
 We gratefully acknowledge the individuals and organizations that have significantly contributed to ocamlformat.
 
-ocamlformat owes its existance to its initial author, [Josh Berdine](https://github.com/jberdine). We also want to express our appreciation to [Hugo Heuzard](https://github.com/hhugo), [Guillaume Petiot](https://github.com/gpetiot), and [Jules Aguillon](https://github.com/Julow). Their significant contributions have been instrumental to the advancement of ocamlformat.
+ocamlformat owes its existence to its initial author, [Josh Berdine](https://github.com/jberdine). We also want to express our appreciation to [Hugo Heuzard](https://github.com/hhugo), [Guillaume Petiot](https://github.com/gpetiot), and [Jules Aguillon](https://github.com/Julow). Their significant contributions have been instrumental to the advancement of ocamlformat.
 
 Moreover, our gratitude extends to Facebook, who fostered the inception of ocamlformat as part of their work on the [ReasonML](https://reasonml.github.io/) project. [Jane Street](https://www.janestreet.com/) and [Tarides](https://tarides.com/) have also provided financial support and contributed to the ongoing development of the project.

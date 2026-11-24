@@ -58,22 +58,25 @@ let insert_ats s ins ats =
 
 let escape_balanced_brackets s =
   (* Do not escape paired brackets. Opening and closing that couldn't be
-     paired will be escaped. *)
-  let rec brackets_to_escape opens closes i =
-    if i >= String.length s then opens @ closes
+     paired will be escaped. [escapes] is a list of indexes where ['\\']
+     should be inserted. *)
+  let rec brackets_to_escape opens escapes after_backslash i =
+    if i >= String.length s then opens @ escapes
     else
-      let opens, closes =
+      let opens, escapes, after_backslash =
         match s.[i] with
-        | '[' -> (i :: opens, closes)
+        | ('[' | ']') when after_backslash -> (opens, i :: escapes, false)
+        | '[' -> (i :: opens, escapes, false)
         | ']' -> (
           match opens with
-          | [] -> (opens, i :: closes)
-          | _ :: tl -> (tl, closes) )
-        | _ -> (opens, closes)
+          | [] -> (opens, i :: escapes, false)
+          | _ :: tl -> (tl, escapes, false) )
+        | '\\' -> (opens, escapes, true)
+        | _ -> (opens, escapes, false)
       in
-      brackets_to_escape opens closes (i + 1)
+      brackets_to_escape opens escapes after_backslash (i + 1)
   in
-  insert_ats s "\\" (brackets_to_escape [] [] 0)
+  insert_ats s "\\" (brackets_to_escape [] [] false 0)
 
 let escape_all s =
   let escapeworthy = function '{' | '}' | '[' | ']' -> true | _ -> false in
@@ -258,11 +261,11 @@ let rec fmt_inline_elements c ~wrap elements =
     | `Math_span s :: t -> fmt_math_span s $ aux t
     | `Raw_markup (lang, s) :: t ->
         let lang =
+          (* The lang can contain arbitrary text. *)
           match lang with
-          | Some l -> str_normalized ~wrap l $ str ":"
+          | Some l -> str l $ str ":"
           | None -> noop
         in
-        (* todo check this was an escape sequence *)
         str "{%" $ (lang $ str s) $ str "%}" $ aux t
     | `Styled (style, elems) :: t ->
         let s =
