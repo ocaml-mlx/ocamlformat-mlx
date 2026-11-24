@@ -13,7 +13,7 @@
 
 (name ocamlformat-mlx)
 
-(version 0.29.0.2)
+(version 0.30.0.0)
 
 (using menhir 2.1)
 
