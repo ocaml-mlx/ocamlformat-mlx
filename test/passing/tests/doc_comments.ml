@@ -333,3 +333,9 @@ a ;;
 
 b
 
+(** [regexp (Re.Pcre.regexp "\\[(.* )\\]")] *)
+
+(** {% <<code language="ocaml"|
+[%client (x : unit)]
+>> %}
+*)

@@ -66,8 +66,10 @@ let pstr_attribute body =
   (Pstr_attribute body, None)
 let pstr_typext (te, ext) =
   (Pstr_typext te, ext)
-let pstr_primitive (vd, ext) =
-  (Pstr_primitive vd, ext)
+let pstr_val (vd, ext) =
+  (Pstr_val vd, ext)
+let pstr_primitive (pd, ext) =
+  (Pstr_primitive pd, ext)
 let pstr_type ((nr, ext), tys) =
   (Pstr_type (nr, tys), ext)
 let pstr_exception (te, ext) =
@@ -95,6 +97,8 @@ let psig_typext (te, ext) =
   (Psig_typext te, ext)
 let psig_value (vd, ext) =
   (Psig_value vd, ext)
+let psig_primitive (pd, ext) =
+  (Psig_primitive pd, ext)
 let psig_type ((nr, ext), tys) =
   (Psig_type (nr, tys), ext)
 let psig_typesubst ((nr, ext), tys) =
@@ -717,12 +721,17 @@ let package_type_of_module_type pmty =
     | _ ->
         err pmty.pmty_loc Not_with_type
   in
-  match pmty with
-  | {pmty_desc = Pmty_ident lid} -> (lid, [], pmty.pmty_attributes)
-  | {pmty_desc = Pmty_with({pmty_desc = Pmty_ident lid}, cstrs)} ->
-      (lid, List.map map_cstr cstrs, pmty.pmty_attributes)
-  | _ ->
-      err pmty.pmty_loc Neither_identifier_nor_with_type
+  let rec flatten attributes cstrs desc =
+    match desc with
+    | Pmty_ident lid -> (lid, cstrs, attributes)
+    | Pmty_with (pmty, more_cstrs) ->
+       let attributes = pmty.pmty_attributes @ attributes in
+       let cstrs = List.map map_cstr more_cstrs @ cstrs in
+       flatten attributes cstrs pmty.pmty_desc
+    | _ ->
+       err pmty.pmty_loc Neither_identifier_nor_with_type
+  in
+  flatten pmty.pmty_attributes [] pmty.pmty_desc
 
 let mk_directive_arg ~loc k =
   { pdira_desc = k;
@@ -934,6 +943,7 @@ The precedences must be listed from low to high.
 %left     BAR                           /* pattern (p|p|p) */
 %nonassoc below_COMMA
 %left     COMMA                         /* expr/labeled_tuple (e,e,e) */
+%nonassoc below_MINUSGREATER
 %right    MINUSGREATER                  /* function_type (t -> t -> t) */
 %right    OR BARBAR                     /* expr (e || e || e) */
 %right    AMPERSAND AMPERAMPER          /* expr (e && e && e) */
@@ -957,10 +967,11 @@ The precedences must be listed from low to high.
 /* Finally, the first tokens of simple_expr are above everything else. */
 %nonassoc BACKQUOTE BANG BEGIN CHAR FALSE FLOAT INT OBJECT
           LBRACE LBRACELESS LBRACKET LBRACKETBAR LIDENT LPAREN
-          NEW PREFIXOP STRING TRUE UIDENT UNDERSCORE
+          NEW PREFIXOP STRING TRUE UIDENT
           LBRACKETPERCENT QUOTED_STRING_EXPR
           METAOCAML_BRACKET_OPEN METAOCAML_ESCAPE
           JSX_LIDENT JSX_UIDENT
+          UNDERSCORE
 
 /* Entry points */
 
@@ -1575,10 +1586,10 @@ local_structure_item:
         { pstr_extension $1 (add_docs_attrs (symbol_docs $sloc) $2) }
     | floating_attribute
         { pstr_attribute $1 }
-    | primitive_declaration
+    | primitive_description
         { pstr_primitive $1 }
     | value_description
-        { pstr_primitive $1 }
+        { pstr_val $1 }
     | type_declarations
         { pstr_type $1 }
     | str_type_extension
@@ -1815,8 +1826,8 @@ signature_item:
         { psig_attribute $1 }
     | value_description
         { psig_value $1 }
-    | primitive_declaration
-        { psig_value $1 }
+    | primitive_description
+        { psig_primitive $1 }
     | type_declarations
         { psig_type $1 }
     | type_subst_declarations
@@ -2494,12 +2505,6 @@ fun_expr:
     { mk_indexop_expr user_indexing_operators ~loc:$sloc $1 }
   | fun_expr attribute
       { Exp.attr $1 $2 }
-/* BEGIN AVOID */
-  (* Allowed in exprs. Commented-out to reduce diffs with upstream.
-  | UNDERSCORE
-     { not_expecting $loc($1) "wildcard \"_\"" }
-  *)
-/* END AVOID */
 ;
 %inline expr:
   | or_function(fun_expr) { $1 }
@@ -2649,8 +2654,6 @@ simple_expr:
       { mkinfix $1 $2 $3 }
   | extension
       { Pexp_extension $1 }
-  | UNDERSCORE
-      { Pexp_hole }
   | od=open_dot_declaration DOT mkrhs(LPAREN RPAREN {Lident "()"})
       { Pexp_struct_item(Str.open_ od,
                          mkexp ~loc:($loc($3)) (Pexp_construct($3, None))) }
@@ -2709,6 +2712,8 @@ simple_expr:
   | mod_longident DOT
     LPAREN MODULE ext_attributes module_expr COLON error
       { unclosed "(" $loc($3) ")" $loc($8) }
+  | UNDERSCORE
+      { Pexp_hole }
 ;
 %inline override_close:
   GREATER_BEFORE_RBRACE RBRACE { () }
@@ -2765,12 +2770,16 @@ labeled_simple_expr:
   | TILDE label = LIDENT
       { let loc = $loc(label) in
         (Labelled label, mkexpvar ~loc label) }
+  | TILDE UNDERSCORE
+      { (Labelled "_", mkexp ~loc:$loc($2) Pexp_hole) }
   | TILDE LPAREN label = LIDENT ty = type_constraint RPAREN
       { (Labelled label, mkexp_constraint ~loc:($startpos($2), $endpos)
                            (mkexpvar ~loc:$loc(label) label) ty) }
   | QUESTION label = LIDENT
       { let loc = $loc(label) in
         (Optional label, mkexpvar ~loc label) }
+  | QUESTION UNDERSCORE
+      { (Optional "_", mkexp ~loc:$loc($2) Pexp_hole) }
   | OPTLABEL simple_expr %prec below_HASH
       { (Optional $1, $2) }
 ;
@@ -3007,8 +3016,14 @@ reversed_labeled_tuple_body:
   xs = rev(reversed_labeled_tuple_body)
     { xs }
 ;
+record_update_expr:
+| simple_expr nonempty_llist(labeled_simple_expr)
+    { mkexp ~loc:$sloc (Pexp_apply ($1, $2)) }
+| simple_expr
+    { $1 }
+;
 record_expr_content:
-  eo = ioption(terminated(simple_expr, WITH))
+  eo = ioption(terminated(record_update_expr, WITH))
   fields = separated_or_terminated_nonempty_list(SEMI, record_expr_field)
     { eo, fields }
 ;
@@ -3318,23 +3333,49 @@ value_description:
       ext }
 ;
 
-/* Primitive declarations */
+/* Primitive descriptions */
 
-primitive_declaration:
-  EXTERNAL
-  ext = ext
-  attrs1 = attributes
-  id = mkrhs(val_ident)
-  COLON
-  ty = possibly_poly(core_type)
-  EQUAL
-  prim = raw_string+
-  attrs2 = post_item_attributes
-    { let attrs = attrs1 @ attrs2 in
-      let loc = make_loc $sloc in
-      let docs = symbol_docs $sloc in
-      Val.mk id ty ~prim ~attrs ~loc ~docs,
-      ext }
+primitive_description:
+  | EXTERNAL
+    ext = ext
+    attrs1 = attributes
+    id = mkrhs(val_ident)
+    COLON
+    ty = possibly_poly(core_type)
+    EQUAL
+    prim = raw_string+
+    attrs2 = post_item_attributes
+      { let attrs = attrs1 @ attrs2 in
+        let loc = make_loc $sloc in
+        let docs = symbol_docs $sloc in
+        Prim.mk_decl id ty ~prim ~attrs ~loc ~docs,
+        ext }
+  | EXTERNAL
+    ext = ext
+    attrs1 = attributes
+    id = mkrhs(val_ident)
+    EQUAL
+    lid = mkrhs(val_longident)
+    attrs2 = post_item_attributes
+      { let attrs = attrs1 @ attrs2 in
+        let loc = make_loc $sloc in
+        let docs = symbol_docs $sloc in
+        Prim.mk_alias id None lid ~attrs ~loc ~docs,
+        ext }
+  | EXTERNAL
+    ext = ext
+    attrs1 = attributes
+    id = mkrhs(val_ident)
+    COLON
+    ty = possibly_poly(core_type)
+    EQUAL
+    lid = mkrhs(val_longident)
+    attrs2 = post_item_attributes
+      { let attrs = attrs1 @ attrs2 in
+        let loc = make_loc $sloc in
+        let docs = symbol_docs $sloc in
+        Prim.mk_alias id (Some ty) lid ~attrs ~loc ~docs,
+        ext }
 ;
 
 (* Type declarations and type substitutions. *)
@@ -3680,8 +3721,10 @@ with_constraint:
   | MODULE mkrhs(mod_longident) COLONEQUAL mkrhs(mod_ext_longident)
       { Pwith_modsubst ($2, $4) }
   | MODULE TYPE l=mkrhs(mty_longident) EQUAL rhs=module_type
+    %prec below_MINUSGREATER
       { Pwith_modtype (l, rhs) }
   | MODULE TYPE l=mkrhs(mty_longident) COLONEQUAL rhs=module_type
+    %prec below_MINUSGREATER
       { Pwith_modtypesubst (l, rhs) }
 ;
 with_type_binder:

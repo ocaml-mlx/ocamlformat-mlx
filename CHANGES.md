@@ -4,13 +4,45 @@ Items marked with an asterisk (\*) are changes that are likely to format
 existing code differently from the previous release when using the default
 profile. This started with version 0.26.0.
 
-## unreleased
+## 0.30.0.0
+
+Based on ocamlformat 0.30.0.
+
+### Highlight
+
+- Support for OCaml 5.6 (#2833, #2834, #2836, #2837, #2840, @Julow)
+
+### Added
+
+- Add the `ocsigen` profile (#2852, @Julow)
 
 ### Changed
 
 - \* Break a JSX prop value that does not fit on its line after `name=` and
   indent it by 2 from the prop name, instead of hanging it after
   `name=(`. A comment after a prop value stays at the prop column (#30)
+
+### Fixed
+
+- Fix dropped comment with `if-then-else = keyword-first` (#2853, @Julow)
+
+- Fix closing parenthesis indentation in some expressions and pattern with
+  `indicate-multiline-delimiters = closing-on-separate-line`
+  (#2850, #2851, @Julow)
+
+- Fix dropped parentheses in `1 :: (2 :: [] [@a])` (#2849, @Julow)
+
+- Fix dropped comment in `let[@ocamlformat "disable"] x = 42 (* a *)`
+  (#2848, @Julow)
+
+- Fix comment changed on some bad `{% ... %}` syntax (#2845, @Julow)
+
+- Fix comment changed containing `[\\[\\]]` (#2844, @Julow)
+
+- Fix missing parentheses in `effect A, (Some k)` (#2843, @Julow)
+
+- Fix missing parentheses around attributed `let open` and `let module`
+  expressions on the left of a sequence (#2826, #2827, @kxc-wraikny, @Don-Yin).
 
 ## 0.29.0.2
 

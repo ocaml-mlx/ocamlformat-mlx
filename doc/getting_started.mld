@@ -21,7 +21,7 @@ dune build @install
 First of all, make sure you have an [.ocamlformat] file at the root of your project. Setting up your project to use the default profile and the OCamlFormat version you installed (hopefully the last one) in this [.ocamlformat] file is considered good practice:
 {[
 profile = default
-version = 0.29.0
+version = 0.30.0
 ]}
 
 To manually invoke OCamlformat the general command is:
@@ -45,7 +45,8 @@ There are a number of preset code style profiles, selected using the [--profile]
 The available profiles are:
 - [conventional] (also known as [default]);
 - [ocamlformat];
-- [janestreet].
+- [janestreet];
+- [ocsigen].
 
 It is considered a good practice to set a profile in the [.ocamlformat] configuration file of a project, even if you plan on using the [default] profile, explicitly setting [profile = default] is recommended.
 
